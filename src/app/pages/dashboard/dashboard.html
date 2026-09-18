@@ -1,0 +1,142 @@
+<section class="page">
+  <header class="hero">
+    <h1>Dashboard</h1>
+    <div class="hello">
+      <p class="wave">Hi, {{ store.displayName() }}!</p>
+      <p class="meta">{{ store.roleSummary() }}</p>
+    </div>
+  </header>
+
+  <section class="steps" aria-labelledby="steps-heading">
+    <div class="steps-head">
+      <h2 id="steps-heading">What to do</h2>
+      <p>Work top to bottom. You can send a role back to Jobs at any time if you do not want to move forward.</p>
+    </div>
+    <ol>
+      <li>
+        <a routerLink="/jobs">
+          <span class="step-num">1</span>
+          <strong>Find jobs</strong>
+          <p>Open Jobs and review live listings from the boards.</p>
+        </a>
+      </li>
+      <li>
+        <a routerLink="/jobs">
+          <span class="step-num">2</span>
+          <strong>Move keepers</strong>
+          <p>Save a role to Applications. It leaves Jobs until you send it back.</p>
+        </a>
+      </li>
+      <li>
+        <a routerLink="/applications">
+          <span class="step-num">3</span>
+          <strong>Apply</strong>
+          <p>On Applications, click Apply to open the real posting.</p>
+        </a>
+      </li>
+      <li>
+        <div>
+          <span class="step-num">4</span>
+          <strong>Confirm</strong>
+          <p>When you return, say whether you applied. That updates Applied.</p>
+        </div>
+      </li>
+      <li>
+        <a routerLink="/applications">
+          <span class="step-num">5</span>
+          <strong>Or pass</strong>
+          <p>Return to Jobs if you do not want to pursue it. Remove hides it for good.</p>
+        </a>
+      </li>
+    </ol>
+  </section>
+
+  @if (store.showReadyBanner()) {
+    <aside class="banner">
+      <div>
+        <strong>You're all set</strong>
+        <p>Your job search is running with the preferences on Search Settings.</p>
+      </div>
+      <button type="button" (click)="store.dismissReadyBanner()" aria-label="Dismiss banner">×</button>
+    </aside>
+  }
+
+  <section class="card">
+    <div class="card-head">
+      <div>
+        <p class="card-kicker">What we have done for you</p>
+        <p class="card-sub">Live results for your current search</p>
+      </div>
+      @if (jobsApi.listings.isLoading()) {
+        <span class="muted">Searching…</span>
+      } @else if (jobsApi.listings.value().sources.length) {
+        <span class="muted">
+          @for (source of jobsApi.listings.value().sources; track source.name; let last = $last) {
+            {{ source.name }}{{ last ? '' : ' · ' }}
+          }
+        </span>
+      } @else {
+        <span class="muted">Live</span>
+      }
+    </div>
+
+    @if (jobsApi.listings.error()) {
+      <p class="status error">
+        Could not reach the job search API. Start it with <code>npm run api</code>, then refresh Jobs.
+      </p>
+    }
+
+    <ul class="stats">
+      <li>
+        <div>
+          <strong>Found</strong>
+          <span>Across job boards</span>
+        </div>
+        <div class="bar-wrap">
+          <span class="bar" [style.width]="barWidth(jobsApi.stats().found)"></span>
+        </div>
+        <a class="stat-link" routerLink="/jobs">{{ jobsApi.stats().found }}</a>
+      </li>
+      <li>
+        <div>
+          <strong>Screened</strong>
+          <span>Location and pay checked</span>
+        </div>
+        <div class="bar-wrap">
+          <span class="bar short" [style.width]="barWidth(jobsApi.stats().screened)"></span>
+        </div>
+        <b>{{ jobsApi.stats().screened }}</b>
+      </li>
+      <li>
+        <div>
+          <strong>Matched</strong>
+          <span>70% match or higher</span>
+        </div>
+        <div class="bar-wrap">
+          <span class="bar" [style.width]="barWidth(jobsApi.stats().matched)"></span>
+        </div>
+        <a class="stat-link" routerLink="/jobs">{{ jobsApi.stats().matched }}</a>
+      </li>
+      <li>
+        <div>
+          <strong>Queued</strong>
+          <span>Ready for your review</span>
+        </div>
+        <div class="bar-wrap">
+          <span class="bar short" [style.width]="barWidth(jobsApi.stats().queued)"></span>
+        </div>
+        <a class="stat-link" routerLink="/applications">{{ jobsApi.stats().queued }}</a>
+      </li>
+      <li>
+        <div>
+          <strong>Applied</strong>
+          <span>Applications you sent</span>
+        </div>
+        <div class="bar-wrap">
+          <span class="bar" [style.width]="barWidth(jobsApi.stats().applied)"></span>
+        </div>
+        <a class="stat-link" routerLink="/applications">{{ jobsApi.stats().applied }}</a>
+      </li>
+    </ul>
+  </section>
+</section>

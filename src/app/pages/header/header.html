@@ -1,0 +1,87 @@
+<aside class="sidebar">
+  <div class="sidebar-top">
+    <a class="brand" routerLink="/" aria-label="Job Finder home">
+      <img class="brand-mark" src="job-search-blue.svg?v=2" width="32" height="32" alt="" />
+      <span>{{ title() }}</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a routerLink="/dashboard" routerLinkActive="active">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5Z"
+          />
+        </svg>
+        Dashboard
+      </a>
+      <a routerLink="/applications" routerLinkActive="active">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M7 4h10a2 2 0 0 1 2 2v14l-7-3-7 3V6a2 2 0 0 1 2-2Z" />
+        </svg>
+        Applications
+        @if (store.applicationCount() > 0) {
+          <span class="badge">{{ store.applicationCount() }}</span>
+        }
+      </a>
+      <a routerLink="/inbox" routerLinkActive="active">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M4 6h16v12H4V6Zm0 0 8 7 8-7"
+          />
+        </svg>
+        Inbox
+        @if (store.inboxCount() > 0) {
+          <span class="badge">{{ store.inboxCount() }}</span>
+        }
+      </a>
+      <a routerLink="/jobs" routerLinkActive="active">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2h4v13H4V7h4Zm2 0h4V5h-4v2Z"
+          />
+        </svg>
+        Jobs
+      </a>
+      <a routerLink="/settings" routerLinkActive="active">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M12 8.5A3.5 3.5 0 1 1 8.5 12 3.5 3.5 0 0 1 12 8.5ZM4 13.2l2 .4a6.7 6.7 0 0 0 .4 1L5.2 16 8 18.8l1.4-1.2a6.7 6.7 0 0 0 1 .4l.4 2h4l.4-2a6.7 6.7 0 0 0 1-.4L16 18.8 18.8 16l-1.2-1.4a6.7 6.7 0 0 0 .4-1l2-.4v-2.4l-2-.4a6.7 6.7 0 0 0-.4-1L18.8 8 16 5.2 14.6 6.4a6.7 6.7 0 0 0-1-.4L13.2 4h-2.4l-.4 2a6.7 6.7 0 0 0-1 .4L8 5.2 5.2 8l1.2 1.4a6.7 6.7 0 0 0-.4 1l-2 .4Z"
+          />
+        </svg>
+        Search Settings
+      </a>
+      <a routerLink="/profile" routerLinkActive="active">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm-8 9v-1.2C4 16.9 7.6 15 12 15s8 1.9 8 4.8V21H4Z"
+          />
+        </svg>
+        Profile
+      </a>
+    </nav>
+
+    <nav class="nav nav-secondary" aria-label="Help">
+      <a routerLink="/faq" routerLinkActive="active">FAQ</a>
+      <a routerLink="/support" routerLinkActive="active">Support</a>
+      <a routerLink="/how-it-works" routerLinkActive="active">How Job Finder Works</a>
+    </nav>
+  </div>
+
+  <div class="sidebar-foot">
+    @if (showPromo()) {
+      <section class="promo">
+        <button type="button" class="promo-close" (click)="dismissPromo()" aria-label="Dismiss">
+          ×
+        </button>
+        <p class="promo-kicker">New feature</p>
+        <h2>Find better matches</h2>
+        <p>Save a search and we will surface roles that fit your skills and location.</p>
+      </section>
+    }
+
+    <a class="profile" routerLink="/profile" routerLinkActive="active">
+      <span class="avatar">{{ store.displayName().charAt(0) }}</span>
+      My Profile
+    </a>
+  </div>
+</aside>

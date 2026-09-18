@@ -1,0 +1,53 @@
+import { Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
+
+@Component({
+  imports: [RouterLink],
+  selector: 'app-faq',
+  styleUrl: './faq.css',
+  templateUrl: './faq.html',
+})
+export class Faq {
+  readonly items = [
+    {
+      question: 'Where do the jobs come from?',
+      answer:
+        'Job Finder searches live boards in one pass: Himalayas, The Muse, Jobicy, Remotive, Remote OK, and JSearch publishers such as ZipRecruiter and Glassdoor. Listings are not scraped from Indeed or LinkedIn directly.',
+    },
+    {
+      question: 'Does Job Finder apply for me?',
+      answer:
+        'No. Save a role to Applications, then click Apply to open the employer or board page. You submit there. When you return, Job Finder asks if you applied so the Applied tab and counts stay accurate.',
+    },
+    {
+      question: 'What is the difference between Remove and Return to Jobs?',
+      answer:
+        'Return to Jobs sends a role back to the Jobs list so you can save it later. Remove on Jobs hides that listing for good. Applied roles also stay off Jobs after Refresh, even if the board sends a new listing ID.',
+    },
+    {
+      question: 'Why do I only see Himalayas?',
+      answer:
+        'A site chip, plus Remote, Full-time, or US, can hide every other board. Click Clear or Refresh on Jobs, then turn filters on one at a time. Himalayas returns the most US remote roles, so it often looks like the only source until you clear filters.',
+    },
+    {
+      question: 'Why did Refresh bring back a job I already applied to?',
+      answer:
+        'Job Finder now remembers applied roles by title and company as well as ID. Confirm Yes, I applied after you submit. Those roles stay on the Applied tab and are kept off Jobs on the next Refresh.',
+    },
+    {
+      question: 'Search Settings vs the chips on Jobs?',
+      answer:
+        'Search Settings drive the live API query (titles, skills, location, work type). The chips on Jobs only narrow what is already loaded. Changing Search Settings, then Refresh, loads a new result set.',
+    },
+    {
+      question: 'Where is my data stored?',
+      answer:
+        'Profile, search, applications, and hidden listings are saved in this browser for the current profile email. Clearing site data removes them. Job Finder does not submit applications or store your resume on a remote server.',
+    },
+    {
+      question: 'Jobs says it cannot reach the API.',
+      answer:
+        'The Angular app talks to a local API at 127.0.0.1:8000. Start both with npm run start:all from the project folder. If only the web app is running, Jobs cannot load listings.',
+    },
+  ] as const;
+}

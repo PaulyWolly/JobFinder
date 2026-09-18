@@ -1,0 +1,19 @@
+<section class="page">
+  <header class="hero">
+    <h1>FAQ</h1>
+    <p class="lede">
+      Short answers about search, Applications, and what Job Finder does — and does not — do for
+      you. For the full walkthrough, see
+      <a routerLink="/how-it-works">How Job Finder Works</a>.
+    </p>
+  </header>
+
+  <div class="panel">
+    @for (item of items; track item.question) {
+      <details>
+        <summary>{{ item.question }}</summary>
+        <p>{{ item.answer }}</p>
+      </details>
+    }
+  </div>
+</section>

@@ -1,0 +1,44 @@
+<section class="page">
+  <header class="top">
+    <h1>Inbox</h1>
+    <button type="button" class="ghost">Email forwarding preferences</button>
+  </header>
+
+  <p class="notice">These sample messages stay in Job Finder. Check spam if you also forward mail to another inbox.</p>
+
+  <div class="layout">
+    <div>
+      <div class="chips">
+        @for (item of categories(); track item.label) {
+          <button type="button" [class.active]="category() === item.label" (click)="category.set(item.label)">
+            {{ item.label }}
+            <span>{{ item.count }}</span>
+          </button>
+        }
+      </div>
+
+      <div class="table">
+        <div class="row head">
+          <span>Date / time</span>
+          <span>Email</span>
+          <span>Category</span>
+        </div>
+        @for (item of visible(); track item.id) {
+          <div class="row">
+            <span><b>{{ item.date }}</b> {{ item.time }}</span>
+            <span class="from">{{ item.from }}</span>
+            <span>{{ item.category }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <aside class="help">
+      <h2>How categories are defined</h2>
+      <p>
+        Job Finder groups recruiter mail into interview invites, extra-info requests,
+        acknowledgements, and rejections so you can scan what needs a reply.
+      </p>
+    </aside>
+  </div>
+</section>

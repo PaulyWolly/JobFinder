@@ -1,0 +1,134 @@
+<section class="page">
+  <h1>Search settings</h1>
+
+  <div class="layout">
+    <div>
+      <section class="role">
+        <h2>Role you are looking for</h2>
+        <p>Save to keep this role on this device. It also updates your Dashboard.</p>
+
+        <form (submit)="save($event)">
+          <div class="role-form">
+          <label class="wide">
+            Job titles
+            <input
+              [formField]="searchForm.titles"
+              placeholder="Frontend Software Engineer, UI Engineer"
+            />
+          </label>
+
+          <label>
+            Experience level
+            <select [formField]="searchForm.experience">
+              @for (level of experienceLevels; track level) {
+                <option [value]="level">{{ level }}</option>
+              }
+            </select>
+          </label>
+
+          <label>
+            Salary range
+            <input [formField]="searchForm.salary" placeholder="140–180K USD / year" />
+          </label>
+
+          <label class="wide">
+            Locations
+            <input [formField]="searchForm.locations" placeholder="Remote (US), Austin, TX" />
+          </label>
+
+          <label class="wide">
+            Skills
+            <textarea
+              [formField]="searchForm.skills"
+              rows="3"
+              placeholder="Angular, TypeScript, CSS"
+            ></textarea>
+          </label>
+
+          <fieldset class="wide">
+            <legend><span class="work-type-label">Work type</span></legend>
+            <div class="chips">
+              @for (type of workTypes; track type) {
+                <button
+                  type="button"
+                  class="chip"
+                  [class.selected]="hasWorkType(type)"
+                  (click)="toggleWorkType(type)"
+                >
+                  {{ type }}
+                </button>
+              }
+            </div>
+          </fieldset>
+          </div>
+
+          <div class="actions">
+            <button type="submit" class="primary" [disabled]="searchForm().submitting()">
+              Update search
+            </button>
+            @if (saved()) {
+              <p class="status">Saved on this device</p>
+            }
+          </div>
+        </form>
+      </section>
+
+      <section class="intro">
+        <h2>Choose your search strategy</h2>
+        <p>
+          Both modes rank jobs from the role details above. Fast Track casts a wider net.
+          Selective Fit only keeps roles that closely match title, level, and pay.
+        </p>
+      </section>
+
+      <button type="button" class="mode" [class.selected]="store.searchMode() === 'fast'" (click)="choose('fast')">
+        <span class="radio"></span>
+        <div>
+          <div class="mode-head">
+            <strong>Fast Track</strong>
+            <span class="tag tag-yellow">More interviews, sooner</span>
+          </div>
+          <p>Best when you want volume. Includes adjacent titles and partial matches.</p>
+          <div class="metrics">
+            <div><b>22</b><span>suggested roles / day, max</span></div>
+            <div><b>5–10</b><span>roles to review / day</span></div>
+            <div><b>3%</b><span>typically lead to an interview</span></div>
+          </div>
+        </div>
+      </button>
+
+      <button type="button" class="mode" [class.selected]="store.searchMode() === 'selective'" (click)="choose('selective')">
+        <span class="radio"></span>
+        <div>
+          <div class="mode-head">
+            <strong>Selective Fit</strong>
+            <span class="tag tag-green">Better fit, fewer applications</span>
+          </div>
+          <p>Best when you can be picky. Skips roles that miss title, level, or pay.</p>
+          <div class="metrics">
+            <div><b>8</b><span>suggested roles / day, max</span></div>
+            <div><b>2–4</b><span>roles to review / day</span></div>
+            <div><b>8%</b><span>typically lead to an interview</span></div>
+          </div>
+        </div>
+      </button>
+    </div>
+
+    <aside class="side">
+      <h2>Current target</h2>
+      <p class="preview-title">{{ store.searchCriteria().titles || 'Add a job title' }}</p>
+      <p>{{ store.searchCriteria().experience }}</p>
+      <p>{{ store.searchCriteria().locations }}</p>
+      <p>{{ store.searchCriteria().salary }}</p>
+      @if (store.searchCriteria().workTypes.length) {
+        <p>{{ store.searchCriteria().workTypes.join(' · ') }}</p>
+      }
+      <p class="preview-skills">{{ store.searchCriteria().skills }}</p>
+      <p>
+        Listings are scored against this role. The mode you pick sets how high that score must
+        be before a job appears in Applications.
+      </p>
+      <a routerLink="/applications">Go to Applications</a>
+    </aside>
+  </div>
+</section>

@@ -1,0 +1,85 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.page {
+  max-width: none;
+  width: 100%;
+}
+
+.hero {
+  margin-bottom: 1.5rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 2.35rem;
+  font-weight: 750;
+  letter-spacing: -0.04em;
+  color: #111827;
+}
+
+.lede {
+  margin: 0.7rem 0 0;
+  max-width: 46rem;
+  color: #4b5563;
+  font-size: 1.02rem;
+  line-height: 1.6;
+}
+
+.lede a {
+  color: #1d4ed8;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.lede a:hover {
+  text-decoration: underline;
+}
+
+.panel {
+  padding: 0.4rem 0.35rem;
+  border-radius: 1.25rem;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
+}
+
+details {
+  padding: 0.15rem 1.15rem;
+}
+
+details + details {
+  border-top: 1px solid #f3f4f6;
+}
+
+summary {
+  padding: 1rem 0;
+  color: #111827;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+summary::after {
+  float: right;
+  color: #2563eb;
+  font-weight: 600;
+  content: '+';
+}
+
+details[open] summary::after {
+  content: '–';
+}
+
+details p {
+  margin: 0 0 1.05rem;
+  max-width: 48rem;
+  color: #4b5563;
+  font-size: 0.98rem;
+  line-height: 1.65;
+}

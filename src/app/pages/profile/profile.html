@@ -1,0 +1,514 @@
+<section class="page">
+  <header class="top">
+    <h1>Personal information</h1>
+    <a routerLink="/dashboard" class="close" aria-label="Back to Dashboard">×</a>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Personal information sections">
+    @for (item of tabs; track item.id) {
+      <button
+        type="button"
+        class="tab"
+        role="tab"
+        [class.active]="tab() === item.id"
+        [attr.aria-selected]="tab() === item.id"
+        (click)="tab.set(item.id)"
+      >
+        <span class="tab-icon" [attr.data-icon]="item.icon" aria-hidden="true"></span>
+        <span>{{ item.label }} {{ tabCount(item.id) }}</span>
+      </button>
+    }
+  </div>
+
+  <form class="card" (submit)="save($event)">
+    @if (tab() === 'contact') {
+      <div class="grid">
+        <label>
+          First name *
+          <input [formField]="profileForm.firstName" />
+        </label>
+        <label>
+          Last name *
+          <input [formField]="profileForm.lastName" />
+        </label>
+        <label class="wide">
+          Email *
+          <input type="email" [formField]="profileForm.email" />
+        </label>
+        <label class="wide">
+          Phone number *
+          <input [formField]="profileForm.phone" />
+        </label>
+        <fieldset class="wide group">
+          <legend>Location</legend>
+          <div class="grid">
+            <label>
+              Address
+              <input [formField]="profileForm.address" />
+            </label>
+            <label>
+              City
+              <input [formField]="profileForm.city" />
+            </label>
+            <label>
+              State
+              <input [formField]="profileForm.state" />
+            </label>
+            <label>
+              Postal
+              <input [formField]="profileForm.postal" />
+            </label>
+          </div>
+        </fieldset>
+        <label class="wide">
+          Date of Birth
+          <input type="date" [formField]="profileForm.dateOfBirth" />
+        </label>
+      </div>
+    }
+
+    @if (tab() === 'location') {
+      <div class="stack">
+        <label>
+          Are you currently living in the United States? *
+          <select [formField]="profileForm.livesInUs">
+            @for (option of yesNo; track option) {
+              <option [value]="option">{{ option }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Are you authorized to work in the United States? *
+          <select [formField]="profileForm.workAuthorized">
+            @for (option of yesNo; track option) {
+              <option [value]="option">{{ option }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          What time zone do you live in? *
+          <select [formField]="profileForm.timezone">
+            @for (option of timezones; track option) {
+              <option [value]="option">{{ option }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Are you open to relocating for a job? *
+          <select [formField]="profileForm.openToRelocate">
+            @for (option of relocateOptions; track option) {
+              <option [value]="option">{{ option }}</option>
+            }
+          </select>
+        </label>
+
+        <fieldset class="group">
+          <legend>Work model *</legend>
+          <label class="check">
+            <input
+              type="checkbox"
+              [checked]="draft().workModels.remote"
+              (change)="toggleModel('remote')"
+            />
+            Remote
+          </label>
+          @if (draft().workModels.remote) {
+            <div class="nested">
+              <label class="check">
+                <input
+                  type="checkbox"
+                  [checked]="draft().workModels.countryBased"
+                  (change)="toggleModel('countryBased')"
+                />
+                Country-based
+              </label>
+              <label class="check">
+                <input
+                  type="checkbox"
+                  [checked]="draft().workModels.stateBased"
+                  (change)="toggleModel('stateBased')"
+                />
+                State-based
+              </label>
+            </div>
+          }
+          <label class="check">
+            <input
+              type="checkbox"
+              [checked]="draft().workModels.hybrid"
+              (change)="toggleModel('hybrid')"
+            />
+            Hybrid
+          </label>
+          <label class="check">
+            <input
+              type="checkbox"
+              [checked]="draft().workModels.onsite"
+              (change)="toggleModel('onsite')"
+            />
+            Onsite
+          </label>
+        </fieldset>
+
+        <div class="split">
+          <fieldset class="chip-field">
+            <legend>Where would you like to work? *</legend>
+            <div class="chips">
+              @for (item of draft().workLocations; track item) {
+                <button
+                  type="button"
+                  class="chip"
+                  [attr.aria-label]="'Remove ' + item"
+                  (click)="removeChip('workLocations', item)"
+                >
+                  {{ item }} <span aria-hidden="true">×</span>
+                </button>
+              }
+            </div>
+            <input
+              placeholder="Add a location and press Enter"
+              (keydown.enter)="addChip($event, 'workLocations')"
+            />
+          </fieldset>
+          <aside class="callout">
+            <strong>Remote roles are highly competitive right now.</strong>
+            <p>
+              Most candidates apply to a very small share of remote positions, while onsite and
+              hybrid roles make up more of the market — and typically lead to interviews faster.
+              Expanding your search to hybrid or onsite roles can significantly increase your
+              chances of getting interviews.
+            </p>
+          </aside>
+        </div>
+      </div>
+    }
+
+    @if (tab() === 'work') {
+      <div class="stack">
+        <fieldset class="chip-field">
+          <legend>Your skills</legend>
+          <div class="chips">
+            @for (item of draft().skills; track item) {
+              <button
+                type="button"
+                class="chip"
+                [attr.aria-label]="'Remove ' + item"
+                (click)="removeChip('skills', item)"
+              >
+                {{ item }} <span aria-hidden="true">×</span>
+              </button>
+            }
+          </div>
+          <input placeholder="Add a skill and press Enter" (keydown.enter)="addChip($event, 'skills')" />
+        </fieldset>
+
+        <fieldset class="chip-field">
+          <legend>Your education</legend>
+          <div class="chips">
+            @for (item of draft().education; track item) {
+              <button
+                type="button"
+                class="chip"
+                [attr.aria-label]="'Remove ' + item"
+                (click)="removeChip('education', item)"
+              >
+                {{ item }} <span aria-hidden="true">×</span>
+              </button>
+            }
+          </div>
+          <input
+            placeholder="Add education and press Enter"
+            (keydown.enter)="addChip($event, 'education')"
+          />
+        </fieldset>
+
+        <label>
+          Your qualification
+          <input [formField]="profileForm.qualification" />
+        </label>
+        <label>
+          Your experience
+          <textarea rows="4" [formField]="profileForm.experienceSummary"></textarea>
+        </label>
+        <label>
+          How many years of experience do you have? *
+          <input [formField]="profileForm.yearsExperience" />
+        </label>
+        <label>
+          What is your most recent place of employment?
+          <input [formField]="profileForm.lastEmployer" />
+        </label>
+        <label>
+          What is your most recent job title?
+          <input [formField]="profileForm.lastTitle" />
+        </label>
+        <label>
+          What is your highest level of education? *
+          <select [formField]="profileForm.educationLevel">
+            @for (option of educationLevels; track option) {
+              <option [value]="option">{{ option }}</option>
+            }
+          </select>
+        </label>
+
+        <fieldset class="group">
+          <legend>List companies to exclude from your job search</legend>
+          <label class="check">
+            <input
+              type="checkbox"
+              [checked]="draft().noExcludedCompanies"
+              (change)="toggleNoExcluded()"
+            />
+            I don't have one
+          </label>
+          @if (!draft().noExcludedCompanies) {
+            <div class="chips">
+              @for (item of draft().excludedCompanies; track item) {
+                <button type="button" class="chip" (click)="removeChip('excludedCompanies', item)">
+                  {{ item }} ×
+                </button>
+              }
+            </div>
+            <input
+              placeholder="Add a company and press Enter"
+              (keydown.enter)="addChip($event, 'excludedCompanies')"
+            />
+          }
+        </fieldset>
+
+        <label>
+          What type of work are you open to? *
+          <select [formField]="profileForm.workSchedule">
+            @for (option of workSchedules; track option) {
+              <option [value]="option">{{ option }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Do you currently have an active United States security clearance? *
+          <select [formField]="profileForm.hasClearance">
+            @for (option of clearanceAnswers; track option) {
+              <option [value]="option">{{ option }}</option>
+            }
+          </select>
+        </label>
+        @if (draft().hasClearance === 'Yes') {
+          <label>
+            Select your level of clearance *
+            <select [formField]="profileForm.clearanceLevel">
+              @for (option of clearanceLevels; track option) {
+                <option [value]="option">{{ option }}</option>
+              }
+            </select>
+          </label>
+        }
+        <label>
+          Describe your current employment status *
+          <select [formField]="profileForm.employmentStatus">
+            @for (option of employmentStatuses; track option) {
+              <option [value]="option">{{ option }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          What is your minimum expected salary? (USD) *
+          <input [formField]="profileForm.minSalary" />
+        </label>
+
+        <fieldset class="chip-field">
+          <legend>What do you value in a new role?</legend>
+          <div class="chips">
+            @for (item of draft().values; track item) {
+              <button
+                type="button"
+                class="chip"
+                [attr.aria-label]="'Remove ' + item"
+                (click)="removeChip('values', item)"
+              >
+                {{ item }} <span aria-hidden="true">×</span>
+              </button>
+            }
+          </div>
+          <select (change)="addPreset($event, 'values')">
+            <option value="">Add a value</option>
+            @for (option of remaining(valueOptions, draft().values); track option) {
+              <option [value]="option">{{ option }}</option>
+            }
+          </select>
+        </fieldset>
+
+        <fieldset class="chip-field">
+          <legend>What kind of roles are you interested in?</legend>
+          <div class="chips">
+            @for (item of draft().roleInterests; track item) {
+              <button
+                type="button"
+                class="chip"
+                [attr.aria-label]="'Remove ' + item"
+                (click)="removeChip('roleInterests', item)"
+              >
+                {{ item }} <span aria-hidden="true">×</span>
+              </button>
+            }
+          </div>
+          <select (change)="addPreset($event, 'roleInterests')">
+            <option value="">Add a role type</option>
+            @for (option of remaining(roleInterestOptions, draft().roleInterests); track option) {
+              <option [value]="option">{{ option }}</option>
+            }
+          </select>
+        </fieldset>
+
+        <label>
+          What is your target experience level in this role? *
+          <select [formField]="profileForm.targetLevel">
+            @for (option of targetLevels; track option) {
+              <option [value]="option">{{ option }}</option>
+            }
+          </select>
+        </label>
+
+        <fieldset class="chip-field">
+          <legend>What industries are exciting to you? *</legend>
+          <div class="chips">
+            @for (item of draft().industries; track item) {
+              <button
+                type="button"
+                class="chip"
+                [attr.aria-label]="'Remove ' + item"
+                (click)="removeChip('industries', item)"
+              >
+                {{ item }} <span aria-hidden="true">×</span>
+              </button>
+            }
+          </div>
+          <select (change)="addPreset($event, 'industries')">
+            <option value="">Add an industry</option>
+            @for (option of remaining(industryOptions, draft().industries); track option) {
+              <option [value]="option">{{ option }}</option>
+            }
+          </select>
+        </fieldset>
+      </div>
+    }
+
+    @if (tab() === 'links') {
+      <div class="stack">
+        <label>
+          LinkedIn
+          <input [formField]="profileForm.linkedIn" />
+        </label>
+        <label class="check">
+          <input type="checkbox" [formField]="profileForm.noLinkedIn" />
+          I don't have a LinkedIn profile
+        </label>
+        <label>
+          GitHub
+          <input [formField]="profileForm.github" />
+        </label>
+        <label>
+          Portfolio
+          <input [formField]="profileForm.portfolio" />
+        </label>
+        <label>
+          Resume URL
+          <input [formField]="profileForm.resumeUrl" />
+        </label>
+        <label>
+          Website
+          <input [formField]="profileForm.website" />
+        </label>
+      </div>
+    }
+
+    @if (tab() === 'demographics') {
+      <div class="stack">
+        <p class="hint">
+          These questions are optional. Answers stay on this device and are never required to search
+          for jobs.
+        </p>
+        <label>
+          Gender
+          <select [formField]="profileForm.gender">
+            @for (option of genderOptions; track option) {
+              <option [value]="option">{{ option }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Hispanic or Latino
+          <select [formField]="profileForm.hispanicLatino">
+            @for (option of preferNot; track option) {
+              <option [value]="option">{{ option }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Veteran status
+          <select [formField]="profileForm.veteran">
+            @for (option of preferNot; track option) {
+              <option [value]="option">{{ option }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Disability status
+          <select [formField]="profileForm.disability">
+            @for (option of preferNot; track option) {
+              <option [value]="option">{{ option }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Race / ethnicity
+          <select
+            id="race-ethnicity"
+            name="race-ethnicity"
+            autocomplete="off"
+            [value]="draft().race"
+            (change)="setRace($any($event.target).value)"
+          >
+            <option value="Prefer not to say">Prefer not to say</option>
+            <option value="American Indian or Alaska Native">American Indian or Alaska Native</option>
+            <option value="Asian">Asian</option>
+            <option value="Black or African American">Black or African American</option>
+            <option value="Hispanic or Latino">Hispanic or Latino</option>
+            <option value="Middle Eastern or North African">Middle Eastern or North African</option>
+            <option value="Native Hawaiian or Other Pacific Islander">
+              Native Hawaiian or Other Pacific Islander
+            </option>
+            <option value="White">White</option>
+            <option value="Two or more races">Two or more races</option>
+            <option value="Some other race">Some other race</option>
+          </select>
+        </label>
+        <label>
+          Pronouns
+          <select [formField]="profileForm.pronouns">
+            @for (option of pronounOptions; track option) {
+              <option [value]="option">{{ option }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          LGBTQ+
+          <select [formField]="profileForm.lgbtq">
+            @for (option of preferNot; track option) {
+              <option [value]="option">{{ option }}</option>
+            }
+          </select>
+        </label>
+      </div>
+    }
+
+    <div class="actions">
+      <button type="submit" class="primary" [disabled]="profileForm().submitting()">
+        Save changes
+      </button>
+      <button type="button" class="ghost" (click)="cancel()">Cancel</button>
+      @if (saved()) {
+        <p class="status">Saved on this device</p>
+      }
+    </div>
+  </form>
+</section>

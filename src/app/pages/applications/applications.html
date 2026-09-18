@@ -1,0 +1,126 @@
+<section class="page">
+  <header class="top">
+    <h1>Applications</h1>
+    <a class="ghost" routerLink="/settings">Search settings</a>
+  </header>
+
+  <div class="tabs">
+    <button type="button" [class.active]="tab() === 'action'" (click)="setTab('action')">
+      Action required
+      <span>{{ store.actionCount() }}</span>
+    </button>
+    <button type="button" [class.active]="tab() === 'applied'" (click)="setTab('applied')">
+      Applied
+      <span>{{ store.appliedCount() }}</span>
+    </button>
+  </div>
+
+  <div class="filters">
+    <label class="search">
+      <span class="sr-only">Search jobs</span>
+      <input
+        type="search"
+        placeholder="Job title or company"
+        [value]="query()"
+        (input)="query.set($any($event.target).value)"
+      />
+    </label>
+    <button type="button" class="chip">Location</button>
+    <button type="button" class="chip">Salary</button>
+    <button type="button" class="chip">Work type</button>
+    <label class="toggle">
+      <input type="checkbox" [checked]="remoteOnly()" (change)="remoteOnly.set($any($event.target).checked)" />
+      Remote
+    </label>
+  </div>
+
+  <p class="count">Found {{ visibleJobs().length }} applications</p>
+
+  <ul class="jobs">
+    @for (job of visibleJobs(); track job.id) {
+      <li class="job">
+        <p class="match">{{ job.match }}% match</p>
+        <div class="job-main">
+          <div>
+            <h2>{{ job.title }}</h2>
+            <p>{{ job.company }}</p>
+          </div>
+          <dl>
+            <div>
+              <dt class="sr-only">Published</dt>
+              <dd>{{ job.published }}</dd>
+            </div>
+            <div>
+              <dt class="sr-only">Applicants</dt>
+              <dd>{{ job.applicants }} applicants</dd>
+            </div>
+            <div>
+              <dt class="sr-only">Type</dt>
+              <dd>{{ job.workType }}</dd>
+            </div>
+            <div>
+              <dt class="sr-only">Location</dt>
+              <dd>{{ job.location }}</dd>
+            </div>
+            <div>
+              <dt class="sr-only">Salary</dt>
+              <dd>{{ job.salary }}</dd>
+            </div>
+          </dl>
+        </div>
+        <div class="job-foot">
+          <span>{{ job.note }}</span>
+          @if (job.tab === 'action') {
+            <div class="actions">
+              <button type="button" class="primary" (click)="beginApply(job)">Apply</button>
+              <button
+                type="button"
+                class="ghost"
+                [attr.aria-label]="'Return ' + job.title + ' at ' + job.company + ' to Jobs'"
+                (click)="store.unqueueJob(job.id)"
+              >
+                Return to Jobs
+              </button>
+            </div>
+          } @else {
+            <div class="actions">
+              <span class="applied">Applied</span>
+              <button
+                type="button"
+                class="ghost"
+                [attr.aria-label]="'Return ' + job.title + ' at ' + job.company + ' to Jobs'"
+                (click)="store.unqueueJob(job.id)"
+              >
+                Return to Jobs
+              </button>
+            </div>
+          }
+        </div>
+      </li>
+    } @empty {
+      <li class="empty">No applications in this view.</li>
+    }
+  </ul>
+
+  @if (promptJob(); as job) {
+    <div class="dialog-backdrop">
+      <div
+        class="dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="apply-prompt-title"
+        aria-describedby="apply-prompt-copy"
+      >
+        <h2 id="apply-prompt-title">Did you apply?</h2>
+        <p id="apply-prompt-copy">
+          Did you apply for <strong>{{ job.title }}</strong> at {{ job.company }}?
+        </p>
+        <div class="dialog-actions">
+          <button type="button" class="ghost" (click)="returnPromptToJobs()">Return to Jobs</button>
+          <button type="button" class="ghost" (click)="skipPrompt()">Not yet</button>
+          <button type="button" class="primary" (click)="confirmApplied()">Yes, I applied</button>
+        </div>
+      </div>
+    </div>
+  }
+</section>

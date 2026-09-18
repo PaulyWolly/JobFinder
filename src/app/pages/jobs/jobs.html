@@ -1,0 +1,156 @@
+<section class="page">
+  <header class="top">
+    <div>
+      <h1>Jobs</h1>
+      <p class="lede">
+        Live listings for
+        <strong>{{ store.searchCriteria().titles }}</strong>
+        · {{ store.searchCriteria().locations }}
+      </p>
+    </div>
+    <div class="top-actions">
+      <a class="ghost" routerLink="/settings">Edit search</a>
+      <button type="button" class="primary" (click)="refresh()">Refresh</button>
+    </div>
+  </header>
+
+  <div class="filters">
+    <label class="search">
+      <span class="sr-only">Search jobs</span>
+      <input
+        type="search"
+        placeholder="Title, company, or location"
+        [value]="query()"
+        (input)="query.set($any($event.target).value)"
+      />
+    </label>
+
+    @for (filter of placeFilters; track filter) {
+      <button
+        type="button"
+        class="chip"
+        [class.selected]="isSelected(filter)"
+        (click)="toggle(filter)"
+      >
+        {{ filter }}
+      </button>
+    }
+
+    @for (filter of typeFilters; track filter) {
+      <button
+        type="button"
+        class="chip"
+        [class.selected]="isSelected(filter)"
+        (click)="toggle(filter)"
+      >
+        {{ filter }}
+      </button>
+    }
+
+    <label class="toggle" [class.selected]="usOnly()">
+      <input type="checkbox" [checked]="usOnly()" (change)="usOnly.set($any($event.target).checked)" />
+      US
+    </label>
+
+    @if (hasFilters()) {
+      <button type="button" class="clear" (click)="clearFilters()">Clear</button>
+    }
+  </div>
+
+  @if (sourceOptions().length) {
+    <div class="filters sites" role="group" aria-label="Job sites">
+      <span class="filter-label">Sites</span>
+      @for (source of sourceOptions(); track source.name) {
+        <button
+          type="button"
+          class="chip"
+          [class.selected]="isSourceSelected(source.name)"
+          [attr.aria-pressed]="isSourceSelected(source.name)"
+          (click)="toggleSource(source.name)"
+        >
+          {{ source.name }}
+          <span class="chip-count">{{ source.count }}</span>
+        </button>
+      }
+    </div>
+  }
+
+  @if (listings.isLoading()) {
+    <p class="status">Searching open roles…</p>
+  } @else if (listings.error()) {
+    <p class="status error">
+      Could not reach the job search API. Start FastAPI with <code>npm run api</code>, then refresh.
+    </p>
+  } @else if (listings.value().jobs.length === 0) {
+    <p class="status">No live matches yet. Tighten titles or skills on Search Settings.</p>
+  } @else if (remainingJobs().length === 0) {
+    <p class="status">You removed every listing in this search. Refresh to load new roles.</p>
+  } @else if (visibleJobs().length === 0) {
+    <p class="status">No roles match these filters. Clear US, work type, or job site, or refresh after updating Search Settings.</p>
+  } @else {
+    <p class="count">
+      Found {{ visibleJobs().length }}
+      @if (visibleJobs().length !== remainingJobs().length) {
+        of {{ remainingJobs().length }}
+      }
+      roles
+      @if (selectedSources().length) {
+        · showing {{ selectedSources().join(', ') }}
+      }
+      @if (visibleSources().length) {
+        ·
+        @for (source of visibleSources(); track source.name) {
+          <span>{{ source.name }} {{ source.count }}</span>
+        }
+      }
+    </p>
+    <ul class="jobs">
+      @for (job of visibleJobs(); track job.id) {
+        <li class="job">
+          <p class="match">{{ job.match }}% match · {{ job.source }}</p>
+          <div class="job-main">
+            <div>
+              <h2>{{ job.title }}</h2>
+              <p>{{ job.company }}</p>
+            </div>
+            <dl>
+              <div>
+                <dt class="sr-only">Published</dt>
+                <dd>{{ job.published }}</dd>
+              </div>
+              <div>
+                <dt class="sr-only">Type</dt>
+                <dd>{{ job.workType }}</dd>
+              </div>
+              <div>
+                <dt class="sr-only">Location</dt>
+                <dd>{{ job.location }}</dd>
+              </div>
+              <div>
+                <dt class="sr-only">Salary</dt>
+                <dd>{{ job.salary }}</dd>
+              </div>
+            </dl>
+          </div>
+          @if (job.snippet) {
+            <p class="snippet">{{ job.snippet }}</p>
+          }
+          <div class="job-foot">
+            <a class="ghost" [href]="job.url" target="_blank" rel="noreferrer">Open listing</a>
+            <button
+              type="button"
+              class="remove"
+              [attr.aria-label]="'Remove ' + job.title + ' at ' + job.company"
+              (click)="store.hideJob(job)"
+            >
+              Remove
+            </button>
+            <button type="button" class="primary" (click)="store.queueJob(job)">
+              Save to Applications
+            </button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>

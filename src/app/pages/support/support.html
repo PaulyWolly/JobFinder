@@ -1,0 +1,69 @@
+<section class="page">
+  <header class="hero">
+    <h1>Support</h1>
+    <p class="lede">
+      Job Finder is a local search and tracking app. Use this page to unstick listings, applications,
+      and the API. Employer questions belong on the posting you opened with Apply.
+    </p>
+  </header>
+
+  <div class="grid">
+    <article class="panel">
+      <h2>Jobs will not load</h2>
+      <p>
+        The web app on port 4200 needs the API on <code>127.0.0.1:8000</code>. From the project
+        folder run <code>npm run start:all</code>, wait until both web and api are ready, then click
+        Refresh on
+        <a routerLink="/jobs">Jobs</a>.
+      </p>
+    </article>
+
+    <article class="panel">
+      <h2>Too few listings, or only one board</h2>
+      <p>
+        Click Clear on Jobs, then Refresh. Site chips and Remote / Full-time / US all stack. Search
+        Settings control the query itself — edit titles, skills, and location there, save, then
+        Refresh again.
+      </p>
+    </article>
+
+    <article class="panel">
+      <h2>I applied but the count did not change</h2>
+      <p>
+        Apply opens the real posting. When you return to
+        <a routerLink="/applications">Applications</a>, choose <strong>Yes, I applied</strong>. That
+        moves the role to Applied and keeps it off Jobs after Refresh.
+      </p>
+    </article>
+
+    <article class="panel">
+      <h2>I do not want a role anymore</h2>
+      <p>
+        On Applications use <strong>Return to Jobs</strong> to put it back in the search.
+        <strong>Remove</strong> on Jobs hides that listing. Hidden and applied roles stay off the
+        Jobs list after Refresh.
+      </p>
+    </article>
+
+    <article class="panel">
+      <h2>Profile or applications disappeared</h2>
+      <p>
+        Data is stored in this browser under your profile email. Another browser, a private window,
+        or clearing site data looks like a new user. Use the same profile email you saved on
+        <a routerLink="/profile">Profile</a>.
+      </p>
+    </article>
+
+    <article class="panel">
+      <h2>More help</h2>
+      <p>
+        Walk through the flow on
+        <a routerLink="/how-it-works">How Job Finder Works</a>
+        or skim
+        <a routerLink="/faq">FAQ</a>.
+        Job Finder does not submit applications for you and does not replace the employer’s careers
+        page.
+      </p>
+    </article>
+  </div>
+</section>
