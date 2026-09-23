@@ -83,6 +83,7 @@ h1 {
 .search input {
   min-width: 16rem;
   padding: 0.65rem 1rem;
+  max-width: 100%;
 }
 
 .chip,
@@ -248,5 +249,38 @@ dl {
 
   .top {
     display: grid;
+  }
+}
+
+@media (max-width: 560px) {
+  .top-actions,
+  .filters,
+  .job-foot {
+    align-items: stretch;
+  }
+
+  .top-actions,
+  .filters {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .search input,
+  .top-actions a,
+  .top-actions button,
+  .filters .chip,
+  .filters .toggle,
+  .filters .clear {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .job-foot {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .job-foot > * {
+    text-align: center;
   }
 }

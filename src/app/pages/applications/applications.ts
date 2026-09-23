@@ -88,9 +88,11 @@ export class Applications {
 
   confirmApplied() {
     const job = this.store.pendingApplyJob();
-    if (job) {
-      this.store.confirmApplied(job.id);
+    if (!job) {
+      this.askApplied.set(false);
+      return;
     }
+    this.store.confirmApplied(job.id);
     this.tab.set('applied');
     this.askApplied.set(Boolean(this.store.pendingApplyJob()));
   }

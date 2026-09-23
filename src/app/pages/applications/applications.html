@@ -70,8 +70,19 @@
         </div>
         <div class="job-foot">
           <span>{{ job.note }}</span>
-          @if (job.tab === 'action') {
-            <div class="actions">
+          <div class="actions">
+            @if (job.url) {
+              <a class="ghost" [href]="job.url" target="_blank" rel="noreferrer">Open listing</a>
+            }
+            <button
+              type="button"
+              class="remove"
+              [attr.aria-label]="'Remove ' + job.title + ' at ' + job.company"
+              (click)="store.hideJob(job)"
+            >
+              Remove
+            </button>
+            @if (job.tab === 'action') {
               <button type="button" class="primary" (click)="beginApply(job)">Apply</button>
               <button
                 type="button"
@@ -81,9 +92,7 @@
               >
                 Return to Jobs
               </button>
-            </div>
-          } @else {
-            <div class="actions">
+            } @else {
               <span class="applied">Applied</span>
               <button
                 type="button"
@@ -93,8 +102,8 @@
               >
                 Return to Jobs
               </button>
-            </div>
-          }
+            }
+          </div>
         </div>
       </li>
     } @empty {

@@ -280,4 +280,20 @@ h1 {
   .bar-wrap {
     display: none;
   }
+
+  .steps,
+  .card {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .stats li {
+    padding: 0.9rem 0;
+  }
+
+  .stats li > :last-child {
+    display: block;
+    margin-top: 0.25rem;
+    text-align: left;
+  }
 }

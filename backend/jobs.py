@@ -51,6 +51,24 @@ def tokens(*parts: str) -> list[str]:
     return words + extras
 
 
+def query_matches(haystack: str, query: str) -> bool:
+    if not query:
+        return True
+    text = clean_text(haystack).lower()
+    q = clean_text(query).lower()
+    if not q:
+        return True
+    if q in text:
+        return True
+    words = [item for item in re.findall(r"[a-z0-9]+", q) if len(item) >= 2 and item not in {"and", "the", "for", "with"}]
+    if not words:
+        return True
+    if len(words) == 1:
+        return words[0] in text
+    required = words[: min(3, len(words))]
+    return all(word in text for word in required)
+
+
 def clean_text(value: Any) -> str:
     text = html.unescape(TAG.sub(" ", str(value or "")))
     return re.sub(r"\s+", " ", text).strip()
@@ -85,6 +103,50 @@ GENERIC_TITLE_TERMS = {
     "senior",
     "software",
     "staff",
+}
+
+FRONTEND_HINTS = {
+    "frontend",
+    "front-end",
+    "front end",
+    "ui",
+    "ux",
+    "web",
+    "angular",
+    "react",
+    "vue",
+    "svelte",
+    "javascript",
+    "typescript",
+    "css",
+    "html",
+    "component",
+    "components",
+    "design system",
+}
+
+BACKEND_HINTS = {
+    "backend",
+    "back-end",
+    "full-stack",
+    "full stack",
+    "api",
+    "node",
+    "node.js",
+    "python",
+    "java",
+    "go",
+    "dotnet",
+    "ruby",
+    "rust",
+    "graphql",
+    "sql",
+    "database",
+    "infrastructure",
+    "devops",
+    "platform",
+    "systems",
+    "cloud",
 }
 
 STACKS = {
@@ -134,6 +196,25 @@ def wanted_stacks(terms: list[str]) -> set[str]:
     return {name for name, pattern in STACKS.items() if pattern.search(blob)}
 
 
+def requires_clearance(job: dict[str, Any]) -> bool:
+    haystack = (
+        f"{job['title']} {job['company']} {job['location']} {job['workType']} "
+        f"{job['snippet']} {job.get('_rank', '')}"
+    ).lower()
+    patterns = [
+        r"\bsecurity\s+clearance\b",
+        r"\bclearance\s+required\b",
+        r"\brequires?\s+(?:a\s+)?security\s+clearance\b",
+        r"\btop\s+secret\b",
+        r"\bsecret\b",
+        r"\bts/sci\b",
+        r"\bts\s+sci\b",
+        r"\bpublic\s+trust\b",
+        r"\bbackground\s+investigation\b",
+    ]
+    return any(re.search(pattern, haystack, re.I) for pattern in patterns)
+
+
 def score_job(
     job: dict[str, Any],
     title_terms: list[str],
@@ -169,6 +250,43 @@ def score_job(
     for term in location_terms[:5]:
         if term in job["location"].lower():
             points += 6
+
+    target_is_frontend = any(item in " ".join(title_terms + skill_terms).lower() for item in ("angular", "frontend", "front-end", "ui", "ux"))
+    title_hits_frontend = any(hint in title for hint in FRONTEND_HINTS)
+    title_hits_backend = any(hint in title for hint in BACKEND_HINTS)
+    snippet_hits_frontend = any(hint in haystack for hint in FRONTEND_HINTS)
+    snippet_hits_backend = any(hint in haystack for hint in BACKEND_HINTS)
+
+    if target_is_frontend:
+        frontend_present = title_hits_frontend or snippet_hits_frontend
+        backend_present = title_hits_backend or snippet_hits_backend
+        angular_title = bool(re.search(r"\bangular\b.*\b(?:developer|engineer|frontend|front-end|ui)\b|\b(?:developer|engineer|frontend|front-end|ui)\b.*\bangular\b", title))
+        if backend_present and not frontend_present and not angular_title:
+            return 0
+        if backend_present and not angular_title and not frontend_present:
+            return 0
+        if not frontend_present and not angular_title:
+            points -= 30
+        if title_hits_backend and not title_hits_frontend and not angular_title:
+            points -= 25
+        if snippet_hits_backend and not snippet_hits_frontend and not angular_title:
+            points -= 18
+
+    requested_index = [
+        term
+        for term in [*title_terms, *skill_terms]
+        if len(term) >= 2 and term not in GENERIC_TITLE_TERMS and term.lower() not in {"remote", "us", "usa"}
+    ]
+    if requested_index:
+        exact_hits = 0
+        for term in requested_index:
+            if re.search(rf"\b{re.escape(term)}\b", title):
+                exact_hits += 2
+            elif term in haystack:
+                exact_hits += 1
+        if exact_hits == 0:
+            return 0
+        points += min(exact_hits * 8, 24)
 
     wanted = wanted_stacks([*skill_terms, *title_terms])
     present = {name for name, pattern in STACKS.items() if pattern.search(haystack)}
@@ -206,10 +324,26 @@ WANT_US = re.compile(r"\b(us|usa|u\.s\.a?\.?|united states)\b", re.I)
 def is_us_job(job: dict[str, Any]) -> bool:
     location = str(job.get("location") or "")
     work_type = str(job.get("workType") or "")
-    text = f"{location} {work_type} {job.get('title')} {job.get('company')}"
+    title = str(job.get("title") or "")
+    company = str(job.get("company") or "")
+    snippet = str(job.get("snippet") or "")
+    rank = str(job.get("_rank") or "")
+    location_lower = location.lower()
+    text = f"{location} {work_type} {title} {company} {snippet} {rank}".lower()
+    company_lower = company.lower()
+
+    remote_us = 'remote' in location_lower and 'us' in location_lower
+    non_us_in_body = bool(NON_US.search(f"{title} {company} {snippet} {rank}"))
+    if remote_us and non_us_in_body:
+        return False
+
+    if re.search(r"\bgmbh\b|deutschland|germany|berlin|munich|münchen|frankfurt|cologne|amsterdam|netherlands|london|united kingdom|sweden|denmark|france|austria|switzerland|poland|spain|portugal|india|bangalore|hyderabad", company_lower):
+        if "remote" in location_lower and not re.search(r"\b(?:united states|usa|u\.s\.?a?\.?|\bus\b)\b", company_lower):
+            return False
+
     if NON_US.search(text) and not US_POSITIVE.search(location):
         return False
-    return bool(US_POSITIVE.search(location) or US_POSITIVE.search(work_type))
+    return bool(US_POSITIVE.search(location) or US_POSITIVE.search(work_type) or US_POSITIVE.search(text))
 
 
 def search_queries(titles: str, skills: str) -> list[str]:
@@ -218,7 +352,9 @@ def search_queries(titles: str, skills: str) -> list[str]:
     if primary:
         queries.append(primary)
     blob = f"{titles} {skills}".lower()
-    for extra in ("angular", "frontend"):
+    if "angular" in blob:
+        queries.append("Angular frontend")
+    for extra in ("frontend", "front-end", "ui"):
         if extra in blob and extra not in primary.lower():
             queries.append(extra)
     return queries or ["software engineer"]
@@ -260,7 +396,7 @@ async def load_remotive(client: httpx.AsyncClient, query: str) -> list[dict[str,
     return jobs
 
 
-async def load_arbeitnow(client: httpx.AsyncClient) -> list[dict[str, Any]]:
+async def load_arbeitnow(client: httpx.AsyncClient, query: str) -> list[dict[str, Any]]:
     jobs: list[dict[str, Any]] = []
     seen: set[str] = set()
     page = 1
@@ -276,9 +412,13 @@ async def load_arbeitnow(client: httpx.AsyncClient) -> list[dict[str, Any]]:
                 continue
             seen.add(slug)
             job_types = item.get("job_types") or []
+            title = str(item.get("title") or "")
+            snippet = str(item.get("description") or "")
+            if not query_matches(f"{title} {snippet}", query):
+                continue
             job = as_job(
                 job_id=f"arbeitnow-{slug}",
-                title=item.get("title", ""),
+                title=title,
                 company=item.get("company_name", ""),
                 published=item.get("created_at", ""),
                 work_type=", ".join(job_types) if job_types else ("Remote" if item.get("remote") else "Not specified"),
@@ -286,7 +426,7 @@ async def load_arbeitnow(client: httpx.AsyncClient) -> list[dict[str, Any]]:
                 salary="",
                 source="Arbeitnow",
                 url=item.get("url", ""),
-                snippet=item.get("description", ""),
+                snippet=snippet,
             )
             if job:
                 jobs.append(job)
@@ -350,16 +490,20 @@ async def load_muse(client: httpx.AsyncClient, query: str, want_us: bool) -> lis
     return jobs
 
 
-async def load_jobicy(client: httpx.AsyncClient, want_us: bool) -> list[dict[str, Any]]:
+async def load_jobicy(client: httpx.AsyncClient, query: str, want_us: bool) -> list[dict[str, Any]]:
     geo = "&geo=usa" if want_us else ""
     payload = await fetch_json(client, f"https://jobicy.com/api/v2/remote-jobs?count=1000{geo}")
     jobs: list[dict[str, Any]] = []
     for item in payload.get("jobs", []) if isinstance(payload, dict) else []:
+        title = str(item.get("jobTitle", ""))
+        snippet = str(item.get("jobExcerpt") or item.get("jobDescription", ""))
+        if not query_matches(f"{title} {snippet}", query):
+            continue
         salary_bits = [item.get("salaryMin"), item.get("salaryMax"), item.get("salaryCurrency")]
         salary = " ".join(str(bit) for bit in salary_bits if bit)
         job = as_job(
             job_id=f"jobicy-{item.get('id')}",
-            title=item.get("jobTitle", ""),
+            title=title,
             company=item.get("companyName", ""),
             published=item.get("pubDate", ""),
             work_type=item.get("jobType", "Remote"),
@@ -367,25 +511,29 @@ async def load_jobicy(client: httpx.AsyncClient, want_us: bool) -> list[dict[str
             salary=salary,
             source="Jobicy",
             url=item.get("url", ""),
-            snippet=item.get("jobExcerpt") or item.get("jobDescription", ""),
+            snippet=snippet,
         )
         if job:
             jobs.append(job)
     return jobs
 
 
-async def load_remoteok(client: httpx.AsyncClient) -> list[dict[str, Any]]:
+async def load_remoteok(client: httpx.AsyncClient, query: str) -> list[dict[str, Any]]:
     payload = await fetch_json(client, "https://remoteok.com/api")
     jobs: list[dict[str, Any]] = []
     items = payload if isinstance(payload, list) else []
     for item in items:
         if not isinstance(item, dict) or not item.get("position"):
             continue
+        title = str(item.get("position", ""))
+        snippet = " ".join(str(part) for part in (item.get("tags") or []))
+        if not query_matches(f"{title} {snippet}", query):
+            continue
         job_id = item.get("id") or item.get("slug")
         url = item.get("url") or item.get("apply_url") or ""
         job = as_job(
             job_id=f"remoteok-{job_id}",
-            title=item.get("position", ""),
+            title=title,
             company=item.get("company", ""),
             published=item.get("date") or item.get("epoch"),
             work_type="Remote",
@@ -393,7 +541,7 @@ async def load_remoteok(client: httpx.AsyncClient) -> list[dict[str, Any]]:
             salary=str(item.get("salary_max") or item.get("salary_min") or ""),
             source="Remote OK",
             url=url,
-            snippet=" ".join(item.get("tags") or []),
+            snippet=snippet,
         )
         if job:
             jobs.append(job)
@@ -572,6 +720,7 @@ async def search_jobs(payload: dict[str, Any]) -> dict[str, Any]:
     skills = str(payload.get("skills") or "")
     locations = str(payload.get("locations") or "")
     work_types = [str(item) for item in payload.get("workTypes") or []]
+    clearance = str(payload.get("clearance") or "none").lower()
     mode = str(payload.get("mode") or "fast")
     queries = search_queries(titles, skills)
     query = queries[0]
@@ -586,8 +735,8 @@ async def search_jobs(payload: dict[str, Any]) -> dict[str, Any]:
             *[load_remotive(client, item) for item in queries],
             *[load_himalayas(client, item, want_us) for item in queries],
             load_muse(client, query, want_us),
-            load_remoteok(client),
-            load_jobicy(client, want_us),
+            load_remoteok(client, query),
+            load_jobicy(client, query, want_us),
             load_jsearch(
                 client,
                 jsearch_query(titles, skills, locations, want_us, want_remote),
@@ -596,15 +745,18 @@ async def search_jobs(payload: dict[str, Any]) -> dict[str, Any]:
             ),
         ]
         if not want_us:
-            tasks.append(load_arbeitnow(client))
+            tasks.append(load_arbeitnow(client, query))
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
     merged: dict[str, dict[str, Any]] = {}
+    exclude_clearance_required = clearance in {"none"}
     for result in results:
         if isinstance(result, BaseException):
             continue
         for job in result:
             if want_us and not is_us_job(job):
+                continue
+            if exclude_clearance_required and requires_clearance(job):
                 continue
             key = f"{job['title'].lower()}|{job['company'].lower()}"
             merged.setdefault(key, job)

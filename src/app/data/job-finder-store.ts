@@ -71,6 +71,8 @@ export const DEFAULT_PROFILE: Profile = {
   lgbtq: 'Prefer not to say',
 };
 
+export type ClearancePreference = 'none' | 'eligible' | 'required';
+
 export const DEFAULT_SEARCH_CRITERIA: SearchCriteria = {
   titles: 'Frontend Software Engineer',
   experience: 'Senior (5+ years)',
@@ -78,6 +80,7 @@ export const DEFAULT_SEARCH_CRITERIA: SearchCriteria = {
   locations: 'Remote (US) · Austin, TX',
   salary: '140–180K USD / year',
   workTypes: ['Full-time', 'Remote'],
+  clearance: 'none',
 };
 
 interface PersistedState {
@@ -157,6 +160,14 @@ function searchCriteriaFromUnknown(value: unknown): SearchCriteria | null {
   for (const key of ['titles', 'experience', 'skills', 'locations', 'salary'] as const) {
     if (typeof data[key] === 'string') {
       next[key] = data[key];
+    }
+  }
+  if (typeof data['clearance'] === 'string') {
+    const value = data['clearance'];
+    if (value === 'eligible' || value === 'required') {
+      next.clearance = value;
+    } else {
+      next.clearance = 'none';
     }
   }
   if (Array.isArray(data['workTypes'])) {
@@ -249,6 +260,7 @@ export interface SearchCriteria {
   locations: string;
   salary: string;
   workTypes: WorkType[];
+  clearance: ClearancePreference;
 }
 
 export interface JobPosting {
@@ -458,7 +470,7 @@ export class JobFinderStore {
   });
   readonly actionCount = computed(() => this.jobs().filter((job) => job.tab === 'action').length);
   readonly appliedCount = computed(() => this.jobs().filter((job) => job.tab === 'applied').length);
-  readonly applicationCount = computed(() => this.jobs().length);
+  readonly applicationCount = computed(() => this.actionCount() + this.appliedCount());
   readonly inboxCount = computed(() => this.inbox().length);
   readonly pendingApplyJob = computed(
     () =>
