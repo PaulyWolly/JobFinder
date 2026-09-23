@@ -33,6 +33,7 @@ class SearchRequest(BaseModel):
     locations: str = ""
     salary: str = ""
     workTypes: list[str] = Field(default_factory=list)
+    clearance: str = "none"
     mode: str = "fast"
 
 

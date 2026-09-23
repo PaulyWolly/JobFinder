@@ -45,6 +45,15 @@
             ></textarea>
           </label>
 
+          <label class="wide">
+            Security clearance
+            <select [formField]="searchForm.clearance">
+              @for (option of clearanceOptions; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+          </label>
+
           <fieldset class="wide">
             <legend><span class="work-type-label">Work type</span></legend>
             <div class="chips">
@@ -123,6 +132,15 @@
       @if (store.searchCriteria().workTypes.length) {
         <p>{{ store.searchCriteria().workTypes.join(' · ') }}</p>
       }
+      <p>
+        {{
+          store.searchCriteria().clearance === 'none'
+            ? 'No clearance / cannot get it'
+            : store.searchCriteria().clearance === 'eligible'
+              ? 'Clearance is okay if needed'
+              : 'Clearance required is okay'
+        }}
+      </p>
       <p class="preview-skills">{{ store.searchCriteria().skills }}</p>
       <p>
         Listings are scored against this role. The mode you pick sets how high that score must

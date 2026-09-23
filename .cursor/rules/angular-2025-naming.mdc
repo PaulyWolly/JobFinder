@@ -1,0 +1,24 @@
+---
+description: Angular 22 / 2025 style guide naming without .component.ts
+globs: **/*.{ts,html,css}
+alwaysApply: true
+---
+
+# Angular 2025 naming
+
+This project uses Angular CLI 22 defaults. Do not generate 2016-style type suffixes.
+
+```ts
+// BAD
+import { HeaderComponent } from './header.component';
+export class HeaderComponent {}
+
+// GOOD
+import { Header } from './header';
+export class Header {}
+```
+
+- Files: `header.ts`, `header.html`, `header.css` (not `header.component.ts`)
+- Classes: `Header`, `JobsApi` (not `HeaderComponent`, `JobsService`)
+- Pipes/NgModules still include the type: `DatePipe`, `date-pipe.ts`
+- Keep `@Component`, selectors like `app-header`, and `imports: [Header]`

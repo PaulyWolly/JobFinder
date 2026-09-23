@@ -20,6 +20,11 @@ export class SearchSettings {
   protected readonly store = inject(JobFinderStore);
   readonly experienceLevels = EXPERIENCE_LEVELS;
   readonly workTypes = WORK_TYPES;
+  readonly clearanceOptions = [
+    { value: 'none', label: 'No clearance / cannot get it' },
+    { value: 'eligible', label: 'I have it or can get it' },
+    { value: 'required', label: 'Clearance required is okay' },
+  ] as const;
   readonly saved = signal(false);
   private savedTimer: ReturnType<typeof setTimeout> | undefined;
   readonly searchForm = form(this.store.searchCriteria, (schema) => {

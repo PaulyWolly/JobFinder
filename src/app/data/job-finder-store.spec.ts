@@ -96,6 +96,36 @@ describe('JobFinderStore', () => {
     expect(store.pendingApplyJob()).toBeNull();
   });
 
+  it('keeps the total application count aligned with the action and applied counts', () => {
+    localStorage.clear();
+    TestBed.configureTestingModule({});
+    const store = TestBed.inject(JobFinderStore);
+    const listing: FoundJob = {
+      id: 'live-total',
+      title: 'Platform Engineer',
+      company: 'Example',
+      match: 92,
+      published: 'Sep 18, 2026',
+      workType: 'Remote',
+      location: 'Remote (US)',
+      salary: '170K USD / year',
+      source: 'Remotive',
+      url: 'https://example.com/platform',
+      snippet: 'Angular role',
+    };
+
+    store.queueJob(listing);
+    const expectedTotal = store.actionCount() + store.appliedCount();
+
+    expect(store.applicationCount()).toBe(expectedTotal);
+
+    store.startApply(listing.id);
+    store.confirmApplied(listing.id);
+
+    expect(store.applicationCount()).toBe(store.actionCount() + store.appliedCount());
+    expect(store.applicationCount()).toBe(expectedTotal);
+  });
+
   it('hides an applied listing after refresh even if the id changed', () => {
     localStorage.clear();
     TestBed.configureTestingModule({});
