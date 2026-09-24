@@ -1,0 +1,56 @@
+<section class="auth-page">
+  <div class="auth-card">
+    <h1>Job Finder</h1>
+    <p class="subtitle">
+      @if (mode() === 'login') {
+        Sign in to sync your searches and applications everywhere.
+      } @else {
+        Create a free account for unlimited job applications.
+      }
+    </p>
+
+    <form (submit)="submit($event)">
+      <label>
+        Email
+        <input type="email" autocomplete="email" [formField]="loginForm.email" />
+      </label>
+
+      <label>
+        Password
+        <input type="password" autocomplete="current-password" [formField]="loginForm.password" />
+      </label>
+
+      @if (authError()) {
+        <p class="error">{{ authError() }}</p>
+      }
+
+      <button type="submit" class="primary" [disabled]="submitting()">
+        @if (submitting()) {
+          Please wait…
+        } @else if (mode() === 'login') {
+          Log in
+        } @else {
+          Create account
+        }
+      </button>
+    </form>
+
+    <button type="button" class="link" (click)="toggleMode()">
+      @if (mode() === 'login') {
+        Need an account? Sign up
+      } @else {
+        Already have an account? Log in
+      }
+    </button>
+
+    <div class="divider"><span>or</span></div>
+
+    <button type="button" class="ghost" (click)="continueAsGuest()">
+      Continue as Guest
+    </button>
+    <p class="guest-note">
+      Guests can apply to up to {{ guestApplyLimit }} jobs. Sign up any time for unlimited
+      applications.
+    </p>
+  </div>
+</section>

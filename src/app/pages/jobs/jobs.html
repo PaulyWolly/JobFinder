@@ -52,15 +52,6 @@
       US
     </label>
 
-    <label class="toggle" [class.selected]="remoteOnly()">
-      <input
-        type="checkbox"
-        [checked]="remoteOnly()"
-        (change)="remoteOnly.set($any($event.target).checked)"
-      />
-      Remote only
-    </label>
-
     @if (hasFilters()) {
       <button type="button" class="clear" (click)="clearFilters()">Clear</button>
     }

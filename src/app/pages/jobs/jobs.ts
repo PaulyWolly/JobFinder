@@ -22,7 +22,6 @@ export class Jobs {
   readonly query = signal('');
   readonly selected = signal<WorkType[]>([]);
   readonly selectedSources = signal<string[]>([]);
-  readonly remoteOnly = signal(false);
   readonly usOnly = signal(/us|united states|usa/i.test(this.store.searchCriteria().locations));
 
   readonly listings = this.jobsApi.listings;
@@ -32,6 +31,9 @@ export class Jobs {
   readonly visibleJobs = computed(() => this.remainingJobs().filter((job) => this.matches(job)));
 
   readonly sourceOptions = computed(() => {
+    if (this.listings.isLoading()) {
+      return [];
+    }
     const counts = new Map<string, number>();
     for (const job of this.remainingJobs()) {
       counts.set(job.source, (counts.get(job.source) ?? 0) + 1);
@@ -54,7 +56,6 @@ export class Jobs {
       this.query().trim().length > 0 ||
       this.selected().length > 0 ||
       this.selectedSources().length > 0 ||
-      this.remoteOnly() ||
       this.usOnly(),
   );
 
@@ -82,13 +83,12 @@ export class Jobs {
     this.query.set('');
     this.selected.set([]);
     this.selectedSources.set([]);
-    this.remoteOnly.set(false);
     this.usOnly.set(false);
   }
 
   refresh() {
     this.selectedSources.set([]);
-    this.listings.reload();
+    this.jobsApi.refresh();
   }
 
   private matches(job: FoundJob, skipSource = false) {
@@ -113,9 +113,6 @@ export class Jobs {
       return false;
     }
     if (this.usOnly() && !isUsJob(job)) {
-      return false;
-    }
-    if (this.remoteOnly() && !this.matchesPlace(haystack, 'Remote')) {
       return false;
     }
     const sources = this.selectedSources();

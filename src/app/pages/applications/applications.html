@@ -132,4 +132,28 @@
       </div>
     </div>
   }
+
+  @if (guestLimitReached()) {
+    <div class="dialog-backdrop">
+      <div
+        class="dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="guest-limit-title"
+        aria-describedby="guest-limit-copy"
+      >
+        <h2 id="guest-limit-title">Guest application limit reached</h2>
+        <p id="guest-limit-copy">
+          Guests can apply to up to {{ store.guestApplyLimit }} jobs. Create a free account for
+          unlimited applications.
+        </p>
+        <div class="dialog-actions">
+          <button type="button" class="ghost" (click)="guestLimitReached.set(false)">
+            Not now
+          </button>
+          <a class="primary" routerLink="/login">Sign up</a>
+        </div>
+      </div>
+    </div>
+  }
 </section>

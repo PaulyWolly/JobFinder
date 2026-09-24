@@ -1,5 +1,45 @@
-<app-header [title]="title()" />
+@if (authApi.isSignedIn()) {
+  <app-header [title]="title()" />
+}
 
-<main class="main" [attr.data-url]="activeUrl()">
+<main class="main" [class.auth-main]="!authApi.isSignedIn()" [attr.data-url]="activeUrl()">
+  @if (authApi.isSignedIn()) {
+    <div class="topbar">
+      <span class="topbar-greeting">Hi, {{ store.displayName() }}!</span>
+      <div class="profile-menu">
+        <button
+          type="button"
+          class="profile-trigger"
+          aria-label="Open account menu"
+          [attr.aria-expanded]="profileMenuOpen()"
+          (click)="toggleProfileMenu()"
+        >
+          @if (store.profile().photoUrl) {
+            <img [src]="store.profile().photoUrl" alt="" />
+          } @else {
+            <span>{{ store.displayName().charAt(0) }}</span>
+          }
+        </button>
+
+        @if (profileMenuOpen()) {
+          <div class="profile-dropdown" role="menu">
+            <div class="profile-summary">
+              @if (store.profile().photoUrl) {
+                <img [src]="store.profile().photoUrl" alt="" />
+              } @else {
+                <span>{{ store.displayName().charAt(0) }}</span>
+              }
+              <div>
+                <strong>{{ store.displayName() }}</strong>
+                <small>{{ authApi.isGuest() ? 'Guest account' : authApi.email() }}</small>
+              </div>
+            </div>
+            <a routerLink="/profile" role="menuitem" (click)="closeProfileMenu()">My Profile</a>
+            <button type="button" role="menuitem" (click)="logout()">Log out</button>
+          </div>
+        }
+      </div>
+    </div>
+  }
   <router-outlet />
 </main>

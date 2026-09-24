@@ -16,6 +16,7 @@ export class Applications {
   readonly query = signal('');
   readonly remoteOnly = signal(false);
   readonly askApplied = signal(false);
+  readonly guestLimitReached = signal(false);
   private leftPage = false;
 
   readonly promptJob = computed(() => (this.askApplied() ? this.store.pendingApplyJob() : null));
@@ -75,6 +76,10 @@ export class Applications {
   }
 
   beginApply(job: JobPosting) {
+    if (this.store.applyLimitReached()) {
+      this.guestLimitReached.set(true);
+      return;
+    }
     this.askApplied.set(false);
     this.leftPage = false;
     this.store.startApply(job.id);

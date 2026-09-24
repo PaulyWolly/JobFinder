@@ -159,30 +159,3 @@
   font-size: 0.8rem;
   line-height: 1.4;
 }
-
-.profile {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  margin-top: 0.75rem;
-  padding: 0.65rem 0.8rem;
-  border-radius: 0.9rem;
-  color: #111827;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.profile:hover,
-.profile.active {
-  background: #f3f4f6;
-}
-
-.avatar {
-  display: grid;
-  place-items: center;
-  width: 1.85rem;
-  height: 1.85rem;
-  border-radius: 50%;
-  background: #e5e7eb;
-  font-size: 0.85rem;
-}

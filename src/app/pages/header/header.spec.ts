@@ -31,7 +31,6 @@ describe('Header', () => {
     expect(text).toContain('Applications');
     expect(text).toContain('How Job Finder Works');
     expect(text).toContain('Profile');
-    expect(text).toContain('My Profile');
 
     const mark = fixture.nativeElement.querySelector('.brand-mark') as HTMLImageElement | null;
     expect(mark?.getAttribute('src')).toBe('job-search-blue.svg?v=2');

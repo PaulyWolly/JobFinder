@@ -23,6 +23,31 @@
   <form class="card" (submit)="save($event)">
     @if (tab() === 'contact') {
       <div class="grid">
+        <div class="wide photo-editor">
+          <div class="photo-preview">
+            @if (draft().photoUrl) {
+              <img [src]="draft().photoUrl" alt="Profile preview" />
+            } @else {
+              <span>{{ draft().firstName.charAt(0) }}</span>
+            }
+          </div>
+          <div>
+            <strong>Profile photo</strong>
+            <p>Use a square image up to 2 MB.</p>
+            <div class="photo-actions">
+              <label class="upload-button">
+                Choose image
+                <input type="file" accept="image/*" (change)="selectProfileImage($event)" />
+              </label>
+              @if (draft().photoUrl) {
+                <button type="button" class="remove-photo" (click)="removeProfileImage()">Remove</button>
+              }
+            </div>
+            @if (imageError()) {
+              <p class="image-error">{{ imageError() }}</p>
+            }
+          </div>
+        </div>
         <label>
           First name *
           <input [formField]="profileForm.firstName" />

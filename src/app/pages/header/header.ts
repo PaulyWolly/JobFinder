@@ -19,4 +19,5 @@ export class Header {
   dismissPromo() {
     this.showPromo.set(false);
   }
+
 }

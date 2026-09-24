@@ -1,5 +1,7 @@
 .page {
-  max-width: 64rem;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
 }
 
 .top {
@@ -12,7 +14,7 @@
 
 h1 {
   margin: 0;
-  font-size: 2.1rem;
+  font-size: 2.35rem;
   font-weight: 750;
   letter-spacing: -0.04em;
   color: #111827;
@@ -128,6 +130,80 @@ label {
 
 .wide {
   grid-column: 1 / -1;
+}
+
+.photo-editor {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid #dbeafe;
+  border-radius: 0.9rem;
+  background: #eff6ff;
+}
+
+.photo-preview {
+  display: grid;
+  place-items: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #bfdbfe;
+  color: #1d4ed8;
+  font-size: 1.5rem;
+  font-weight: 750;
+}
+
+.photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-editor strong {
+  color: #1e3a8a;
+}
+
+.photo-editor p {
+  margin: 0.25rem 0 0.55rem;
+  color: #1e40af;
+  font-size: 0.82rem;
+}
+
+.photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.upload-button,
+.remove-photo {
+  display: inline-block;
+  padding: 0.45rem 0.7rem;
+  border: 0;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #fff;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.upload-button input {
+  display: none;
+}
+
+.remove-photo {
+  background: transparent;
+  color: #1d4ed8;
+}
+
+.image-error {
+  color: #b91c1c !important;
 }
 
 .group {

@@ -73,6 +73,8 @@ export class JobsApi {
     loader: ({ params }) => this.search(params.criteria, params.mode),
   });
 
+  private forceNextSearch = false;
+
   readonly visibleJobs = computed(() => {
     return this.listings.value().jobs.filter((job) => !this.store.isTracked(job));
   });
@@ -89,6 +91,8 @@ export class JobsApi {
   });
 
   search(criteria: SearchCriteria, mode: SearchMode) {
+    const force = this.forceNextSearch;
+    this.forceNextSearch = false;
     return firstValueFrom(
       this.http
         .post<JobSearchResult | FoundJob[]>(`${API_URL}/jobs/search`, {
@@ -99,8 +103,15 @@ export class JobsApi {
           salary: criteria.salary,
           workTypes: criteria.workTypes,
           mode,
+          force,
         })
         .pipe(map(asSearchResult)),
     );
+  }
+
+  /** Forces the next search to bypass the backend cache, for explicit user-initiated refreshes. */
+  refresh() {
+    this.forceNextSearch = true;
+    this.listings.reload();
   }
 }
