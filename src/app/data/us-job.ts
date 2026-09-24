@@ -67,10 +67,12 @@ const US_POSITIVE = new RegExp(
   'i',
 );
 
-export function isUsJob(job: Pick<FoundJob, 'title' | 'company' | 'location' | 'workType'>) {
-  const text = `${job.location} ${job.workType} ${job.title} ${job.company}`;
+export function isUsJob(
+  job: Pick<FoundJob, 'title' | 'company' | 'location' | 'workType' | 'snippet'>,
+) {
+  const text = `${job.location} ${job.workType} ${job.title} ${job.company} ${job.snippet}`;
   if (NON_US.test(text) && !US_POSITIVE.test(job.location)) {
     return false;
   }
-  return US_POSITIVE.test(job.location) || US_POSITIVE.test(job.workType);
+  return US_POSITIVE.test(job.location) || US_POSITIVE.test(job.workType) || US_POSITIVE.test(text);
 }

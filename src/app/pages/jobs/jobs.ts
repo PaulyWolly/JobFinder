@@ -36,6 +36,9 @@ export class Jobs {
     }
     const counts = new Map<string, number>();
     for (const job of this.remainingJobs()) {
+      if (!this.matches(job, true)) {
+        continue;
+      }
       counts.set(job.source, (counts.get(job.source) ?? 0) + 1);
     }
     return [...counts.entries()]
@@ -124,9 +127,15 @@ export class Jobs {
 
   private matchesType(haystack: string, type: (typeof TYPE_FILTERS)[number]) {
     if (type === 'Full-time') {
-      return haystack.includes('full-time') || haystack.includes('full time') || haystack.includes('fulltime');
+      return (
+        haystack.includes('full-time') ||
+        haystack.includes('full time') ||
+        haystack.includes('fulltime') ||
+        haystack.includes('full_time') ||
+        (!haystack.includes('contract') && !haystack.includes('freelance'))
+      );
     }
-    return haystack.includes('contract') || haystack.includes('freelance');
+    return haystack.includes('contract') || haystack.includes('freelance') || haystack.includes('contractor');
   }
 
   private matchesPlace(haystack: string, place: (typeof PLACE_FILTERS)[number]) {
