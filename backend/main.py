@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 from typing import Any
 
+import os
+import asyncio
+
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
@@ -33,6 +36,20 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup() -> None:
     init_db()
+    # Start mail poller only when explicitly enabled via env var.
+    enabled = os.environ.get('MAIL_POLL_ENABLED', 'false').lower() in ('1', 'true', 'yes')
+    if enabled:
+        try:
+            import mail_poll
+
+            # Schedule background task; mail_poll.run_poll_loop is async
+            try:
+                asyncio.create_task(mail_poll.run_poll_loop())
+            except RuntimeError:
+                # If there's no running loop (unlikely under uvicorn), skip starting.
+                print('Mail poller not started: event loop unavailable', flush=True)
+        except Exception as exc:
+            print(f'Failed to initialize mail poller: {exc}', flush=True)
 
 
 class SearchRequest(BaseModel):
