@@ -16,7 +16,7 @@ export class App {
   private readonly router = inject(Router);
   protected readonly authApi = inject(AuthApi);
   protected readonly store = inject(JobFinderStore);
-  protected readonly title = signal('Job Finder');
+  protected readonly title = signal('JobFinder');
   protected readonly profileMenuOpen = signal(false);
   protected readonly activeUrl = toSignal(
     this.router.events.pipe(

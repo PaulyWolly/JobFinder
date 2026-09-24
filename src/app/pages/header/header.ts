@@ -12,7 +12,7 @@ import { JobFinderStore } from '../../data/job-finder-store';
   templateUrl: './header.html',
 })
 export class Header {
-  readonly title = input('Job Finder');
+  readonly title = input('JobFinder');
   readonly showPromo = signal(true);
   protected readonly store = inject(JobFinderStore);
 
