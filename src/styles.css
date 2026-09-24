@@ -34,6 +34,11 @@
     min-height: 100dvh;
   }
 
+  .brand-inline {
+    display: inline-block;
+    white-space: nowrap;
+  }
+
   body {
     padding: 0;
     background: #f3f4f6;

@@ -236,6 +236,42 @@ dl {
   color: #b91c1c;
 }
 
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgb(15 23 42 / 45%);
+}
+
+.dialog {
+  width: min(28rem, 100%);
+  padding: 1.25rem 1.3rem 1.15rem;
+  border-radius: 1.15rem;
+  background: #fff;
+  box-shadow: 0 18px 40px rgb(15 23 42 / 18%);
+}
+
+.dialog h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+}
+
+.dialog p {
+  margin: 0 0 1.1rem;
+  color: #4b5563;
+  line-height: 1.45;
+}
+
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

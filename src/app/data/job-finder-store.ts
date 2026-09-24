@@ -1,6 +1,6 @@
 import { isPlatformBrowser } from '@angular/common';
 import { Service, afterNextRender, computed, effect, inject, PLATFORM_ID, signal } from '@angular/core';
-import { AuthApi, GUEST_APPLY_LIMIT } from './auth-api';
+import { AuthApi, GUEST_SAVE_LIMIT } from './auth-api';
 
 const STORAGE_KEY = 'job-finder.state';
 const USER_KEY = 'job-finder.user';
@@ -309,7 +309,13 @@ function jobFromUnknown(value: unknown): JobPosting | null {
     return null;
   }
   const data = value as Record<string, unknown>;
-  if (typeof data['id'] !== 'string' || typeof data['title'] !== 'string') {
+  if (
+    typeof data['id'] !== 'string' ||
+    !data['title'] ||
+    typeof data['title'] !== 'string' ||
+    !data['company'] ||
+    typeof data['company'] !== 'string'
+  ) {
     return null;
   }
   return {
@@ -480,7 +486,7 @@ export class JobFinderStore {
   });
   readonly roleSummary = computed(() => {
     if (this.authApi.isGuest()) {
-      return `Guest mode · ${this.guestApplyLimit} application limit`;
+      return `Guest mode · ${this.guestSaveLimit} saved-job limit`;
     }
     const role = this.searchCriteria();
     if (
@@ -502,10 +508,10 @@ export class JobFinderStore {
         (job) => job.tab === 'action' && this.pendingApplyIds().includes(job.id),
       ) ?? null,
   );
-  /** Guests are capped at GUEST_APPLY_LIMIT applications; logged-in users are unlimited. */
-  readonly guestApplyLimit = GUEST_APPLY_LIMIT;
-  readonly applyLimitReached = computed(
-    () => this.authApi.isGuest() && this.appliedCount() >= GUEST_APPLY_LIMIT,
+  /** Guests may save up to GUEST_SAVE_LIMIT jobs; logged-in users are unlimited. */
+  readonly guestSaveLimit = GUEST_SAVE_LIMIT;
+  readonly guestSaveLimitReached = computed(
+    () => this.authApi.isGuest() && this.applicationCount() >= GUEST_SAVE_LIMIT,
   );
 
   constructor() {
@@ -601,7 +607,7 @@ export class JobFinderStore {
 
   startApply(id: string) {
     const job = this.jobs().find((item) => item.id === id);
-    if (!job || job.tab === 'applied' || this.applyLimitReached()) {
+    if (!job || job.tab === 'applied') {
       return;
     }
     if (!this.pendingApplyIds().includes(id)) {
@@ -662,8 +668,13 @@ export class JobFinderStore {
   }
 
   queueJob(job: FoundJob) {
-    if (this.isTracked(job)) {
-      return;
+    if (
+      this.isTracked(job) ||
+      this.guestSaveLimitReached() ||
+      !job.title.trim() ||
+      !job.company.trim()
+    ) {
+      return false;
     }
 
     this.jobs.update((jobs) => [
@@ -685,6 +696,7 @@ export class JobFinderStore {
       ...jobs,
     ]);
     this.persist();
+    return true;
   }
 
   private trackedKeys() {

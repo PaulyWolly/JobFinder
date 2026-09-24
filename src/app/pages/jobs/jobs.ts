@@ -22,6 +22,7 @@ export class Jobs {
   readonly query = signal('');
   readonly selected = signal<WorkType[]>([]);
   readonly selectedSources = signal<string[]>([]);
+  readonly guestSaveLimitReached = signal(false);
   readonly usOnly = signal(/us|united states|usa/i.test(this.store.searchCriteria().locations));
 
   readonly listings = this.jobsApi.listings;
@@ -92,6 +93,12 @@ export class Jobs {
   refresh() {
     this.selectedSources.set([]);
     this.jobsApi.refresh();
+  }
+
+  saveJob(job: FoundJob) {
+    if (!this.store.queueJob(job) && this.store.guestSaveLimitReached()) {
+      this.guestSaveLimitReached.set(true);
+    }
   }
 
   private matches(job: FoundJob, skipSource = false) {

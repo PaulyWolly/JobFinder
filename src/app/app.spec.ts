@@ -36,7 +36,7 @@ describe('App', () => {
     const sidebar = compiled.querySelector('app-header');
 
     expect(sidebar).toBeTruthy();
-    expect(sidebar?.textContent).toContain('Job Finder');
+    expect(sidebar?.textContent).toContain('JobFinder');
     expect(sidebar?.textContent).toContain('Dashboard');
   });
 });

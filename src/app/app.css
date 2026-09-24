@@ -139,6 +139,88 @@
   color: #111827;
 }
 
+.onboarding-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgb(15 23 42 / 45%);
+}
+
+.onboarding-dialog {
+  width: min(34rem, 100%);
+  padding: 1.5rem;
+  border-radius: 1.15rem;
+  background: #fff;
+  box-shadow: 0 18px 40px rgb(15 23 42 / 18%);
+}
+
+.onboarding-kicker {
+  margin: 0 0 0.35rem;
+  color: #16a34a;
+  font-size: 0.8rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.onboarding-dialog h2 {
+  margin: 0 0 0.6rem;
+  color: #111827;
+  font-size: 1.45rem;
+}
+
+.onboarding-dialog p,
+.onboarding-dialog li {
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+.onboarding-dialog > p {
+  margin: 0 0 0.7rem;
+}
+
+.onboarding-dialog ol {
+  margin: 0 0 1.25rem;
+  padding-left: 1.35rem;
+}
+
+.onboarding-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.onboarding-actions a,
+.onboarding-actions button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.6rem 0.9rem;
+  font: inherit;
+  font-weight: 650;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.onboarding-actions .primary {
+  background: #2563eb;
+  color: #fff;
+}
+
+.onboarding-actions .ghost {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.onboarding-actions .link {
+  margin-left: auto;
+  background: transparent;
+  color: #6b7280;
+}
+
 @media (max-width: 800px) {
   .main {
     padding: 0 1rem 2rem;

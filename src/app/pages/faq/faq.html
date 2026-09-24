@@ -2,17 +2,17 @@
   <header class="hero">
     <h1>FAQ</h1>
     <p class="lede">
-      Short answers about search, Applications, and what Job Finder does — and does not — do for
+      Short answers about search, Applications, and what <span class="brand-inline">Job<em>Finder</em></span> does — and does not — do for
       you. For the full walkthrough, see
-      <a routerLink="/how-it-works">How Job Finder Works</a>.
+      <a routerLink="/how-it-works">How <span class="brand-inline">Job<em>Finder</em></span> Works</a>.
     </p>
   </header>
 
   <div class="panel">
     @for (item of items; track item.question) {
       <details>
-        <summary>{{ item.question }}</summary>
-        <p>{{ item.answer }}</p>
+        <summary [innerHTML]="item.question"></summary>
+        <p [innerHTML]="item.answer"></p>
       </details>
     }
   </div>

@@ -16,6 +16,14 @@
       }
     </p>
 
+    @if (mode() === 'signup' && returnUrl() === '/applications') {
+      <p class="apply-disclaimer">
+        You need a free account to continue applying for jobs. Before you can apply, complete your
+        Profile and configure your Search Settings so employers receive the details you intend to
+        use.
+      </p>
+    }
+
     <form (submit)="submit($event)">
       <label>
         Email
@@ -56,8 +64,8 @@
       Continue as Guest
     </button>
     <p class="guest-note">
-      Guests can apply to up to {{ guestApplyLimit }} jobs. Sign up any time for unlimited
-      applications.
+      Guests can browse and save up to {{ guestSaveLimit }} jobs, but must create a free account
+      before applying.
     </p>
   </div>
 </section>

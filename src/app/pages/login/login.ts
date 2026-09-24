@@ -1,7 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { form, FormField, required } from '@angular/forms/signals';
-import { AuthApi, GUEST_APPLY_LIMIT } from '../../data/auth-api';
+import { AuthApi, GUEST_SAVE_LIMIT } from '../../data/auth-api';
 
 interface LoginFields {
   email: string;
@@ -19,8 +19,10 @@ export class Login {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
-  readonly guestApplyLimit = GUEST_APPLY_LIMIT;
-  readonly mode = signal<'login' | 'signup'>('login');
+  readonly guestSaveLimit = GUEST_SAVE_LIMIT;
+  readonly mode = signal<'login' | 'signup'>(
+    this.route.snapshot.queryParamMap.get('mode') === 'signup' ? 'signup' : 'login',
+  );
   readonly submitting = signal(false);
   protected readonly authError = this.authApi.authError;
 
@@ -57,7 +59,7 @@ export class Login {
     }
   }
 
-  private returnUrl() {
+  returnUrl() {
     return this.route.snapshot.queryParamMap.get('returnUrl') || '/dashboard';
   }
 }

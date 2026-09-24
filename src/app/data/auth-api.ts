@@ -9,8 +9,8 @@ const EMAIL_KEY = 'job-finder.auth-email';
 const GUEST_KEY = 'job-finder.guest';
 const GUEST_STATE_KEY = 'job-finder.state.guest@local';
 
-/** Jobs a guest may apply to before being asked to create a free account. */
-export const GUEST_APPLY_LIMIT = 10;
+/** Jobs a guest may save before being asked to create a free account. */
+export const GUEST_SAVE_LIMIT = 10;
 
 interface AuthResponse {
   token: string;
@@ -30,13 +30,14 @@ export class AuthApi {
 
   readonly token = signal<string | null>(null);
   readonly email = signal<string | null>(null);
-  /** Guests skip login entirely but are capped at GUEST_APPLY_LIMIT applications. */
+  /** Guests skip login entirely but are capped at GUEST_SAVE_LIMIT saved jobs. */
   readonly isGuest = signal(false);
   /** True once the initial token check (and state fetch, if any) has settled. */
   readonly ready = signal(false);
   /** State fetched on login/signup/boot, consumed once by JobFinderStore. */
   readonly initialState = signal<Record<string, unknown> | null>(null);
   readonly authError = signal<string | null>(null);
+  readonly showOnboarding = signal(false);
 
   readonly isAuthenticated = computed(() => this.token() !== null);
   /** Either a real account or a guest session is active. */
@@ -102,10 +103,15 @@ export class AuthApi {
   }
 
   async signup(email: string, password: string) {
-    return this.authenticate('/auth/signup', email, password);
+    const ok = await this.authenticate('/auth/signup', email, password);
+    if (ok) {
+      this.showOnboarding.set(true);
+    }
+    return ok;
   }
 
   async login(email: string, password: string) {
+    this.showOnboarding.set(false);
     return this.authenticate('/auth/login', email, password);
   }
 

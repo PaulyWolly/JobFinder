@@ -34,6 +34,10 @@ export class App {
     this.profileMenuOpen.set(false);
   }
 
+  closeOnboarding() {
+    this.authApi.showOnboarding.set(false);
+  }
+
   logout() {
     this.closeProfileMenu();
     this.authApi.logout();

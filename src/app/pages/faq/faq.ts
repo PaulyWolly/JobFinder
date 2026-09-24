@@ -12,12 +12,12 @@ export class Faq {
     {
       question: 'Where do the jobs come from?',
       answer:
-        'Job Finder searches live boards in one pass: Himalayas, The Muse, Jobicy, Remotive, Remote OK, and JSearch publishers such as ZipRecruiter and Glassdoor. Listings are not scraped from Indeed or LinkedIn directly.',
+        '<span class="brand-inline">Job<em>Finder</em></span> searches live boards in one pass: Himalayas, The Muse, Jobicy, Remotive, Remote OK, and JSearch publishers such as ZipRecruiter and Glassdoor. Listings are not scraped from Indeed or LinkedIn directly.',
     },
     {
-      question: 'Does Job Finder apply for me?',
+      question: 'Does <span class="brand-inline">Job<em>Finder</em></span> apply for me?',
       answer:
-        'No. Save a role to Applications, then click Apply to open the employer or board page. You submit there. When you return, Job Finder asks if you applied so the Applied tab and counts stay accurate.',
+        'No. Save a role to Applications, then click Apply to open the employer or board page. You submit there. When you return, <span class="brand-inline">Job<em>Finder</em></span> asks if you applied so the Applied tab and counts stay accurate.',
     },
     {
       question: 'What is the difference between Remove and Return to Jobs?',
@@ -32,7 +32,7 @@ export class Faq {
     {
       question: 'Why did Refresh bring back a job I already applied to?',
       answer:
-        'Job Finder now remembers applied roles by title and company as well as ID. Confirm Yes, I applied after you submit. Those roles stay on the Applied tab and are kept off Jobs on the next Refresh.',
+        '<span class="brand-inline">Job<em>Finder</em></span> now remembers applied roles by title and company as well as ID. Confirm Yes, I applied after you submit. Those roles stay on the Applied tab and are kept off Jobs on the next Refresh.',
     },
     {
       question: 'Search Settings vs the chips on Jobs?',
@@ -42,7 +42,7 @@ export class Faq {
     {
       question: 'Where is my data stored?',
       answer:
-        'For registered accounts, your profile, search settings, applications, inbox, hidden listings, and any resume information you upload are stored in the local SQLite database on the Job Finder API, in a separate state record linked to your account. Guest sessions are local-only and use browser storage; Guests have a 10-application limit. Job Finder does not submit applications for you.',
+        'For registered accounts, your profile, search settings, applications, inbox, hidden listings, and any resume information you upload are stored in the local SQLite database on the <span class="brand-inline">Job<em>Finder</em></span> API, in a separate state record linked to your account. Guest sessions are local-only and use browser storage; Guests may save up to 10 jobs but must create an account before applying. <span class="brand-inline">Job<em>Finder</em></span> does not submit applications for you.',
     },
     {
       question: 'Jobs says it cannot reach the API.',

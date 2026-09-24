@@ -42,4 +42,32 @@
     </div>
   }
   <router-outlet />
+
+  @if (authApi.showOnboarding()) {
+    <div class="onboarding-backdrop">
+      <section
+        class="onboarding-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="onboarding-title"
+      >
+        <p class="onboarding-kicker">Account created</p>
+        <h2 id="onboarding-title">Set up <span class="brand-inline">Job<em>Finder</em></span> before you apply</h2>
+        <p>
+          Your free account is ready. Complete these steps so your searches and application details
+          are ready to use:
+        </p>
+        <ol>
+          <li>Complete your Profile, including contact details and any resume information.</li>
+          <li>Fill out and save all Search Settings fields.</li>
+          <li>Return to Jobs, save roles to Applications, and apply from there.</li>
+        </ol>
+        <div class="onboarding-actions">
+          <a class="primary" routerLink="/profile" (click)="closeOnboarding()">Complete Profile</a>
+          <a class="ghost" routerLink="/settings" (click)="closeOnboarding()">Search Settings</a>
+          <button type="button" class="link" (click)="closeOnboarding()">I’ll do this later</button>
+        </div>
+      </section>
+    </div>
+  }
 </main>

@@ -22,14 +22,14 @@ describe('Header', () => {
   });
 
   it('should show the app title and primary links', async () => {
-    fixture.componentRef.setInput('title', 'Job Finder');
+    fixture.componentRef.setInput('title', 'JobFinder');
     await fixture.whenStable();
 
     const text = fixture.nativeElement.textContent as string;
-    expect(text).toContain('Job Finder');
+    expect(text).toContain('JobFinder');
     expect(text).toContain('Dashboard');
     expect(text).toContain('Applications');
-    expect(text).toContain('How Job Finder Works');
+    expect(text).toContain('How JobFinder Works');
     expect(text).toContain('Profile');
 
     const mark = fixture.nativeElement.querySelector('.brand-mark') as HTMLImageElement | null;
