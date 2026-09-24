@@ -7,6 +7,7 @@ const API_URL = 'http://127.0.0.1:8000';
 const TOKEN_KEY = 'job-finder.auth-token';
 const EMAIL_KEY = 'job-finder.auth-email';
 const GUEST_KEY = 'job-finder.guest';
+const GUEST_STATE_KEY = 'job-finder.state.guest@local';
 
 /** Jobs a guest may apply to before being asked to create a free account. */
 export const GUEST_APPLY_LIMIT = 10;
@@ -89,8 +90,10 @@ export class AuthApi {
   /** Skip login/signup entirely with a capped, local-only guest session. */
   continueAsGuest() {
     this.isGuest.set(true);
+    this.initialState.set(null);
     if (this.browser) {
       localStorage.setItem(GUEST_KEY, '1');
+      localStorage.removeItem(GUEST_STATE_KEY);
     }
   }
 

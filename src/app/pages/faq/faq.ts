@@ -42,7 +42,7 @@ export class Faq {
     {
       question: 'Where is my data stored?',
       answer:
-        'Profile, search, applications, and hidden listings are saved in this browser for the current profile email. Clearing site data removes them. Job Finder does not submit applications or store your resume on a remote server.',
+        'For registered accounts, your profile, search settings, applications, inbox, hidden listings, and any resume information you upload are stored in the local SQLite database on the Job Finder API, in a separate state record linked to your account. Guest sessions are local-only and use browser storage; Guests have a 10-application limit. Job Finder does not submit applications for you.',
     },
     {
       question: 'Jobs says it cannot reach the API.',

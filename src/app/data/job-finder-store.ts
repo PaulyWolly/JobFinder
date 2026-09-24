@@ -466,6 +466,7 @@ export class JobFinderStore {
   readonly showReadyBanner = signal(true);
   readonly showSearchTip = signal(true);
   private readonly hydrated = signal(false);
+  private activeSession: string | null = null;
 
   readonly displayName = computed(() => {
     if (this.authApi.isGuest()) {
@@ -522,12 +523,24 @@ export class JobFinderStore {
         }
       } else {
         this.restore();
-        this.clearDemoGuestState();
+        if (this.authApi.isGuest()) {
+          this.clearDemoGuestState();
+        }
       }
+      this.activeSession = this.authApi.isAuthenticated()
+        ? `account:${this.authApi.email() ?? ''}`
+        : this.authApi.isGuest()
+          ? 'guest'
+          : 'signed-out';
       this.hydrated.set(true);
     });
 
     effect(() => {
+      const session = this.authApi.isAuthenticated()
+        ? `account:${this.authApi.email() ?? ''}`
+        : this.authApi.isGuest()
+          ? 'guest'
+          : 'signed-out';
       this.profile();
       this.searchCriteria();
       this.searchMode();
@@ -537,6 +550,10 @@ export class JobFinderStore {
       this.jobs();
       this.inbox();
       if (this.hydrated()) {
+        if (this.activeSession !== null && this.activeSession !== session && session === 'guest') {
+          this.resetGuestState();
+        }
+        this.activeSession = session;
         this.persist();
       }
     });
@@ -722,21 +739,63 @@ export class JobFinderStore {
   }
 
   private clearDemoGuestState() {
-    if (!this.authApi.isGuest() || this.profile().email !== DEFAULT_PROFILE.email) {
+    if (!this.authApi.isGuest()) {
       return;
     }
 
-    this.profile.update((profile) => ({
-      ...profile,
+    this.resetGuestState();
+  }
+
+  private resetGuestState() {
+    this.profile.set({
+      ...cloneProfile(DEFAULT_PROFILE),
       firstName: 'Guest',
       lastName: '',
       email: 'guest@local',
-    }));
+      phone: '',
+      address: '',
+      city: '',
+      state: '',
+      postal: '',
+      dateOfBirth: '',
+      livesInUs: '',
+      workAuthorized: '',
+      timezone: '',
+      openToRelocate: '',
+      workLocations: [],
+      skills: [],
+      education: [],
+      qualification: '',
+      experienceSummary: '',
+      yearsExperience: '',
+      lastEmployer: '',
+      lastTitle: '',
+      educationLevel: '',
+      linkedIn: '',
+      github: '',
+      targetLevel: '',
+      industries: [],
+      values: [],
+      roleInterests: [],
+      minSalary: '',
+      workSchedule: '',
+      employmentStatus: '',
+      hasClearance: '',
+      clearanceLevel: '',
+    });
     this.searchCriteria.set({
       ...DEFAULT_SEARCH_CRITERIA,
       titles: '',
+      experience: '',
+      skills: '',
       locations: 'Remote (US)',
+      salary: '',
+      workTypes: ['Remote'],
+      clearance: 'none',
     });
+    this.searchMode.set('fast');
+    this.hiddenJobIds.set([]);
+    this.hiddenListingKeys.set([]);
     this.jobs.set([]);
     this.inbox.set([]);
     this.pendingApplyIds.set([]);
