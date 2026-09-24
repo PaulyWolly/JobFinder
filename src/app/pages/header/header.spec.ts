@@ -32,7 +32,7 @@ describe('Header', () => {
     expect(text).toContain('How JobFinder Works');
     expect(text).toContain('Profile');
 
-    const mark = fixture.nativeElement.querySelector('.brand-mark') as HTMLImageElement | null;
-    expect(mark?.getAttribute('src')).toBe('job-search-blue.svg?v=2');
+    const mark = fixture.nativeElement.querySelector('.brand-mark') as SVGElement | null;
+    expect(mark?.querySelector('text')?.textContent).toBe('Jobs');
   });
 });

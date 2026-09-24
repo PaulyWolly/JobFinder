@@ -479,7 +479,10 @@ export class JobFinderStore {
       return 'Guest';
     }
     const profile = this.profile();
-    if (this.authApi.isAuthenticated() && profile.email === DEFAULT_PROFILE.email) {
+    if (
+      this.authApi.isAuthenticated() &&
+      (profile.firstName === 'Guest' || profile.email === 'guest@local')
+    ) {
       return this.authApi.email()?.split('@')[0]?.split(/[._-]/)[0] || profile.firstName;
     }
     return profile.firstName;
@@ -541,6 +544,14 @@ export class JobFinderStore {
       this.hydrated.set(true);
     });
 
+    // Apply remote state whenever AuthApi supplies one (e.g. after background updates).
+    effect(() => {
+      const remote = this.authApi.initialState();
+      if (remote) {
+        this.applyState(remote);
+      }
+    });
+
     effect(() => {
       const session = this.authApi.isAuthenticated()
         ? `account:${this.authApi.email() ?? ''}`
@@ -556,8 +567,22 @@ export class JobFinderStore {
       this.jobs();
       this.inbox();
       if (this.hydrated()) {
-        if (this.activeSession !== null && this.activeSession !== session && session === 'guest') {
-          this.resetGuestState();
+        if (this.activeSession !== null && this.activeSession !== session) {
+          if (session === 'guest') {
+            this.resetGuestState();
+          } else if (this.authApi.isAuthenticated()) {
+            const remote = this.authApi.initialState();
+            if (remote) {
+              this.applyState(remote);
+            } else {
+              this.profile.update((profile) => ({
+                ...profile,
+                email: this.authApi.email() ?? profile.email,
+              }));
+            }
+          }
+          this.activeSession = session;
+          return;
         }
         this.activeSession = session;
         this.persist();

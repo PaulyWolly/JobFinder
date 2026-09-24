@@ -1,6 +1,12 @@
 from __future__ import annotations
 
 import json
+import hashlib
+import os
+import secrets
+import smtplib
+from datetime import datetime, timedelta, timezone
+from email.message import EmailMessage
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, status
@@ -8,8 +14,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 
+from db import PasswordResetToken, User, UserState, get_db, init_db
 from auth import create_access_token, get_current_user, hash_password, verify_password
-from db import User, UserState, get_db, init_db
 from jobs import search_jobs
 
 app = FastAPI(title="Job Finder API", version="1.4.0")
@@ -31,8 +37,17 @@ app.add_middleware(
 
 
 @app.on_event("startup")
-def on_startup() -> None:
+async def on_startup() -> None:
     init_db()
+    # start background mail poller if configured
+    try:
+        import mail_poll
+        import asyncio as _asyncio
+
+        _asyncio.create_task(mail_poll.run_poll_loop())
+    except Exception:
+        # non-fatal: continue without mail poller
+        pass
 
 
 class SearchRequest(BaseModel):
@@ -55,6 +70,15 @@ class SignupRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str = Field(min_length=32)
+    password: str = Field(min_length=8)
 
 
 class AuthResponse(BaseModel):
@@ -107,6 +131,81 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)) ->
     return AuthResponse(token="", email=user.email, state=_state_dict(user, db))
 
 
+def _smtp_setting(name: str, default: str = "") -> str:
+    return os.environ.get(name, default).strip()
+
+
+def _send_password_reset_email(email: str, token: str) -> None:
+    host = _smtp_setting("SMTP_HOST")
+    port = int(_smtp_setting("SMTP_PORT", "587"))
+    username = _smtp_setting("SMTP_USERNAME")
+    password = _smtp_setting("SMTP_PASSWORD")
+    sender = _smtp_setting("SMTP_FROM", username)
+    app_url = _smtp_setting("APP_URL", "http://localhost:4200")
+    if not host or not sender:
+        raise RuntimeError("SMTP_HOST and SMTP_FROM must be configured")
+    message = EmailMessage()
+    message["Subject"] = "Reset your JobFinder password"
+    message["From"] = sender
+    message["To"] = email
+    message.set_content(
+        f"Reset your JobFinder password here:\n\n"
+        f"{app_url}/login?mode=reset&token={token}\n\n"
+        "This link expires in 30 minutes and can only be used once."
+    )
+    with smtplib.SMTP(host, port, timeout=15) as smtp:
+        smtp.starttls()
+        if username:
+            smtp.login(username, password)
+        smtp.send_message(message)
+
+
+@app.post("/auth/password-reset/request")
+def request_password_reset(body: PasswordResetRequest, db: Session = Depends(get_db)) -> dict[str, str]:
+    user = db.query(User).filter(User.email == body.email.strip().lower()).one_or_none()
+    if user is not None:
+        raw_token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+        db.query(PasswordResetToken).filter(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.used_at.is_(None),
+        ).update({"used_at": datetime.now(timezone.utc)})
+        db.add(
+            PasswordResetToken(
+                user_id=user.id,
+                token_hash=token_hash,
+                expires_at=datetime.now(timezone.utc) + timedelta(minutes=30),
+            )
+        )
+        db.commit()
+        try:
+            _send_password_reset_email(user.email, raw_token)
+        except (OSError, smtplib.SMTPException, ValueError, RuntimeError) as exc:
+            db.rollback()
+            raise HTTPException(status_code=503, detail="Password reset email is not available") from exc
+    return {"message": "If an account exists for that email, a reset link has been sent."}
+
+
+@app.post("/auth/password-reset/confirm")
+def confirm_password_reset(body: PasswordResetConfirm, db: Session = Depends(get_db)) -> dict[str, str]:
+    token_hash = hashlib.sha256(body.token.encode()).hexdigest()
+    reset = (
+        db.query(PasswordResetToken)
+        .filter(PasswordResetToken.token_hash == token_hash, PasswordResetToken.used_at.is_(None))
+        .one_or_none()
+    )
+    now = datetime.now(timezone.utc)
+    if reset is None or reset.expires_at.replace(tzinfo=timezone.utc) <= now:
+        raise HTTPException(status_code=400, detail="This password reset link is invalid or expired")
+    user = db.get(User, reset.user_id)
+    if user is None:
+        raise HTTPException(status_code=400, detail="This password reset link is invalid or expired")
+    user.password_hash = hash_password(body.password)
+    reset.used_at = now
+    db.commit()
+    return {"message": "Password updated. You can now log in."}
+
+
 @app.get("/state")
 def get_state(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict[str, Any]:
     return {"state": _state_dict(user, db)}
@@ -133,3 +232,13 @@ def put_state(
 async def jobs_search(body: SearchRequest) -> dict[str, Any]:
     return await search_jobs(body.model_dump())
 
+
+@app.post("/mail/fetch")
+def mail_fetch() -> dict[str, Any]:
+    try:
+        import mail_poll
+
+        count = mail_poll.fetch_and_import_once()
+        return {"imported": count}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))

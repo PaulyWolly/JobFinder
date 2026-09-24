@@ -18,6 +18,10 @@ interface AuthResponse {
   state: Record<string, unknown> | null;
 }
 
+interface MessageResponse {
+  message: string;
+}
+
 /**
  * Talks to the FastAPI backend for signup/login and syncing the user's full
  * app state (profile, search criteria, jobs, etc.) so it lives in a database
@@ -90,6 +94,7 @@ export class AuthApi {
 
   /** Skip login/signup entirely with a capped, local-only guest session. */
   continueAsGuest() {
+    this.clearSession();
     this.isGuest.set(true);
     this.initialState.set(null);
     if (this.browser) {
@@ -113,6 +118,46 @@ export class AuthApi {
   async login(email: string, password: string) {
     this.showOnboarding.set(false);
     return this.authenticate('/auth/login', email, password);
+  }
+
+  async requestPasswordReset(email: string) {
+    this.authError.set(null);
+    try {
+      const response = await firstValueFrom(
+        this.http.post<MessageResponse>(`${API_URL}/auth/password-reset/request`, { email }),
+      );
+      return response.message;
+    } catch (error) {
+      this.authError.set(this.messageFor(error));
+      return null;
+    }
+  }
+
+  /** Fetch current account state from the API and update `initialState`. */
+  async fetchState() {
+    try {
+      const me = await firstValueFrom(this.http.get<AuthResponse>(`${API_URL}/auth/me`, this.authHeaders(this.token())));
+      this.initialState.set(me.state);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async confirmPasswordReset(token: string, password: string) {
+    this.authError.set(null);
+    try {
+      const response = await firstValueFrom(
+        this.http.post<MessageResponse>(`${API_URL}/auth/password-reset/confirm`, {
+          token,
+          password,
+        }),
+      );
+      return response.message;
+    } catch (error) {
+      this.authError.set(this.messageFor(error));
+      return null;
+    }
   }
 
   private async authenticate(path: string, email: string, password: string) {

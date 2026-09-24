@@ -20,9 +20,14 @@ export class Login {
   private readonly route = inject(ActivatedRoute);
 
   readonly guestSaveLimit = GUEST_SAVE_LIMIT;
-  readonly mode = signal<'login' | 'signup'>(
-    this.route.snapshot.queryParamMap.get('mode') === 'signup' ? 'signup' : 'login',
+  readonly mode = signal<'login' | 'signup' | 'forgot' | 'reset'>(
+    this.route.snapshot.queryParamMap.get('mode') === 'signup'
+      ? 'signup'
+      : this.route.snapshot.queryParamMap.get('mode') === 'reset'
+        ? 'reset'
+        : 'login',
   );
+  readonly resetMessage = signal<string | null>(null);
   readonly submitting = signal(false);
   protected readonly authError = this.authApi.authError;
 
@@ -35,6 +40,13 @@ export class Login {
   toggleMode() {
     this.authApi.authError.set(null);
     this.mode.set(this.mode() === 'login' ? 'signup' : 'login');
+    this.resetMessage.set(null);
+  }
+
+  showForgotPassword() {
+    this.authApi.authError.set(null);
+    this.resetMessage.set(null);
+    this.mode.set('forgot');
   }
 
   continueAsGuest() {
@@ -45,14 +57,32 @@ export class Login {
   async submit(event: Event) {
     event.preventDefault();
     const { email, password } = this.model();
-    if (!email.trim() || !password.trim()) {
+    if (
+      (this.mode() !== 'reset' && !email.trim()) ||
+      (this.mode() !== 'forgot' && !password.trim())
+    ) {
       return;
     }
     this.submitting.set(true);
-    const ok =
-      this.mode() === 'login'
-        ? await this.authApi.login(email.trim(), password)
-        : await this.authApi.signup(email.trim(), password);
+    if (this.mode() === 'forgot') {
+      this.resetMessage.set(await this.authApi.requestPasswordReset(email.trim()));
+      this.submitting.set(false);
+      return;
+    }
+    if (this.mode() === 'reset') {
+      const token = this.route.snapshot.queryParamMap.get('token');
+      this.resetMessage.set(
+        token ? await this.authApi.confirmPasswordReset(token, password) : null,
+      );
+      this.submitting.set(false);
+      if (this.resetMessage()) {
+        this.mode.set('login');
+      }
+      return;
+    }
+    const ok = this.mode() === 'login'
+      ? await this.authApi.login(email.trim(), password)
+      : await this.authApi.signup(email.trim(), password);
     this.submitting.set(false);
     if (ok) {
       this.router.navigateByUrl(this.returnUrl());
