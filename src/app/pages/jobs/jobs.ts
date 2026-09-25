@@ -23,6 +23,7 @@ export class Jobs {
   readonly selected = signal<WorkType[]>([]);
   readonly selectedSources = signal<string[]>([]);
   readonly guestSaveLimitReached = signal(false);
+  readonly remoteOnly = signal(false);
   readonly usOnly = signal(/us|united states|usa/i.test(this.store.searchCriteria().locations));
 
   readonly listings = this.jobsApi.listings;
@@ -60,6 +61,7 @@ export class Jobs {
       this.query().trim().length > 0 ||
       this.selected().length > 0 ||
       this.selectedSources().length > 0 ||
+      this.remoteOnly() ||
       this.usOnly(),
   );
 
@@ -87,6 +89,7 @@ export class Jobs {
     this.query.set('');
     this.selected.set([]);
     this.selectedSources.set([]);
+    this.remoteOnly.set(false);
     this.usOnly.set(false);
   }
 
@@ -123,6 +126,9 @@ export class Jobs {
       return false;
     }
     if (this.usOnly() && !isUsJob(job)) {
+      return false;
+    }
+    if (this.remoteOnly() && !this.matchesPlace(haystack, 'Remote')) {
       return false;
     }
     const sources = this.selectedSources();

@@ -383,7 +383,6 @@ def is_us_job(job: dict[str, Any]) -> bool:
 
     if len(NON_ENGLISH_POSTING.findall(body)) >= 2:
         return False
-
     if re.search(r"\bgmbh\b|deutschland|germany|berlin|munich|münchen|frankfurt|cologne|amsterdam|netherlands|london|united kingdom|sweden|denmark|france|austria|switzerland|poland|spain|portugal|india|bangalore|hyderabad", company_lower):
         if "remote" in location_lower and not re.search(r"\b(?:united states|usa|u\.s\.?a?\.?|\bus\b)\b", company_lower):
             return False
