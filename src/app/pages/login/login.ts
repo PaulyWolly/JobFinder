@@ -37,9 +37,8 @@ export class Login {
   readonly showResetRequest = signal(false);
   readonly resetSubmitting = signal(false);
   readonly resetMessage = signal<string | null>(null);
-  // Use plain public objects so template `[(ngModel)]` can bind to them
-  resetModel = { email: '' };
-  confirmModel = { token: '', password: '' };
+  readonly resetModel: { email: string } = { email: '' };
+  readonly confirmModel: { token: string; password: string } = { token: '', password: '' };
 
   ngOnInit() {
     const token = this.route.snapshot.queryParamMap.get('token');
