@@ -115,6 +115,24 @@ export class AuthApi {
     return this.authenticate('/auth/login', email, password);
   }
 
+  async requestPasswordReset(email: string) {
+    try {
+      await firstValueFrom(this.http.post(`${API_URL}/auth/password-reset/request`, { email }));
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: this.messageFor(err) };
+    }
+  }
+
+  async confirmPasswordReset(token: string, password: string) {
+    try {
+      await firstValueFrom(this.http.post(`${API_URL}/auth/password-reset/confirm`, { token, password }));
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: this.messageFor(err) };
+    }
+  }
+
   private async authenticate(path: string, email: string, password: string) {
     this.authError.set(null);
     try {
