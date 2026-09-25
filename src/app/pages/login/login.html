@@ -9,8 +9,12 @@
       <h1><span>Job</span><span class="auth-brand-finder">Finder</span></h1>
     </div>
     <p class="subtitle">
-      @if (mode() === 'login') {
-        Sign in to sync your searches and applications everywhere.
+      @if (mode() === 'forgot') {
+        Enter your email and we’ll send a secure password reset link.
+      } @else if (mode() === 'reset') {
+        Choose a new password for your JobFinder account.
+      } @else if (mode() === 'login') {
+        Sign in, find jobs and sync your searches and applications.
       } @else {
         Create a free account for unlimited job applications.
       }
@@ -25,15 +29,19 @@
     }
 
     <form (submit)="submit($event)">
-      <label>
+      @if (mode() !== 'reset') {
+        <label>
         Email
         <input type="email" autocomplete="email" [formField]="loginForm.email" />
-      </label>
+        </label>
+      }
 
-      <label>
+      @if (mode() !== 'forgot') {
+        <label>
         Password
-        <input type="password" autocomplete="current-password" [formField]="loginForm.password" />
-      </label>
+        <input type="password" [autocomplete]="mode() === 'reset' ? 'new-password' : 'current-password'" [formField]="loginForm.password" />
+        </label>
+      }
 
       <p class="forgot">
         <a href="#" (click)="showForgot()">Forgot password?</a>
@@ -48,19 +56,35 @@
           Please wait…
         } @else if (mode() === 'login') {
           Log in
+        } @else if (mode() === 'forgot') {
+          Send reset link
+        } @else if (mode() === 'reset') {
+          Update password
         } @else {
           Create account
         }
       </button>
     </form>
 
-    <button type="button" class="link" (click)="toggleMode()">
+    @if (resetMessage()) {
+      <p class="success">{{ resetMessage() }}</p>
+    }
+
+    @if (mode() === 'login' || mode() === 'signup') {
+      <button type="button" class="link" (click)="toggleMode()">
       @if (mode() === 'login') {
         Need an account? Sign up
       } @else {
         Already have an account? Log in
       }
-    </button>
+      </button>
+    }
+
+    @if (mode() === 'login') {
+      <button type="button" class="link forgot-link" (click)="showForgotPassword()">
+        Forgot password?
+      </button>
+    }
 
     @if (showResetRequest()) {
       <div class="reset-card">

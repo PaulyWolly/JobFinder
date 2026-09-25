@@ -18,6 +18,10 @@ interface AuthResponse {
   state: Record<string, unknown> | null;
 }
 
+interface MessageResponse {
+  message: string;
+}
+
 /**
  * Talks to the FastAPI backend for signup/login and syncing the user's full
  * app state (profile, search criteria, jobs, etc.) so it lives in a database
@@ -90,6 +94,7 @@ export class AuthApi {
 
   /** Skip login/signup entirely with a capped, local-only guest session. */
   continueAsGuest() {
+    this.clearSession();
     this.isGuest.set(true);
     this.initialState.set(null);
     if (this.browser) {
@@ -130,6 +135,14 @@ export class AuthApi {
       return { ok: true };
     } catch (err) {
       return { ok: false, error: this.messageFor(err) };
+    }
+  }
+    try {
+      await firstValueFrom(this.http.post(`${API_URL}/auth/password-reset/confirm`, { token, password }));
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: this.messageFor(err) };
+>>>>>>> master
     }
   }
 

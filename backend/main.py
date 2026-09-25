@@ -1,24 +1,23 @@
 from __future__ import annotations
 
 import json
-from typing import Any
-
-import os
-import asyncio
-
 import hashlib
+import os
 import secrets
 import smtplib
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
+from typing import Any
+
+import asyncio
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 
-from auth import create_access_token, get_current_user, hash_password, verify_password
 from db import PasswordResetToken, User, UserState, get_db, init_db
+from auth import create_access_token, get_current_user, hash_password, verify_password
 from jobs import search_jobs
 
 app = FastAPI(title="Job Finder API", version="1.4.0")
@@ -40,7 +39,7 @@ app.add_middleware(
 
 
 @app.on_event("startup")
-def on_startup() -> None:
+async def on_startup() -> None:
     init_db()
     # Start mail poller only when explicitly enabled via env var.
     enabled = os.environ.get('MAIL_POLL_ENABLED', 'false').lower() in ('1', 'true', 'yes')
@@ -241,3 +240,13 @@ def put_state(
 async def jobs_search(body: SearchRequest) -> dict[str, Any]:
     return await search_jobs(body.model_dump())
 
+
+@app.post("/mail/fetch")
+def mail_fetch() -> dict[str, Any]:
+    try:
+        import mail_poll
+
+        count = mail_poll.fetch_and_import_once()
+        return {"imported": count}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
