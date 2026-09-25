@@ -137,14 +137,6 @@ export class AuthApi {
       return { ok: false, error: this.messageFor(err) };
     }
   }
-    try {
-      await firstValueFrom(this.http.post(`${API_URL}/auth/password-reset/confirm`, { token, password }));
-      return { ok: true };
-    } catch (err) {
-      return { ok: false, error: this.messageFor(err) };
->>>>>>> master
-    }
-  }
 
   private async authenticate(path: string, email: string, password: string) {
     this.authError.set(null);

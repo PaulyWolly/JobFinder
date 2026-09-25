@@ -116,15 +116,19 @@ export class Login {
     }
     this.submitting.set(true);
     if (this.mode() === 'forgot') {
-      this.resetMessage.set(await this.authApi.requestPasswordReset(email.trim()));
+      const res = await this.authApi.requestPasswordReset(email.trim());
+      this.resetMessage.set(res.ok ? 'If an account exists, a reset link was sent.' : res.error || 'Request failed');
       this.submitting.set(false);
       return;
     }
     if (this.mode() === 'reset') {
       const token = this.route.snapshot.queryParamMap.get('token');
-      this.resetMessage.set(
-        token ? await this.authApi.confirmPasswordReset(token, password) : null,
-      );
+      if (token) {
+        const res = await this.authApi.confirmPasswordReset(token, password);
+        this.resetMessage.set(res.ok ? 'Password updated. You can now log in.' : res.error || 'Reset failed');
+      } else {
+        this.resetMessage.set(null);
+      }
       this.submitting.set(false);
       if (this.resetMessage()) {
         this.mode.set('login');
