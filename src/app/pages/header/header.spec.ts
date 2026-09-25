@@ -32,16 +32,9 @@ describe('Header', () => {
     expect(text).toContain('How JobFinder Works');
     expect(text).toContain('Profile');
 
-<<<<<<< HEAD
-    const mark = fixture.nativeElement.querySelector('.brand-mark') as Element | null;
-    // mark is now an inline SVG element; assert it's present and is an SVG
-    expect(mark).not.toBeNull();
-    expect(mark?.tagName.toLowerCase()).toBe('svg');
-=======
-    const mark = fixture.nativeElement.querySelector('.brand-mark') as Element | null;
-    // mark is now an inline SVG element; assert it's present and is an SVG
-    expect(mark).not.toBeNull();
-    expect(mark?.tagName.toLowerCase()).toBe('svg');
->>>>>>> master
+  const mark = fixture.nativeElement.querySelector('.brand-mark') as Element | null;
+  // mark is now an inline SVG element; assert it's present and is an SVG
+  expect(mark).not.toBeNull();
+  expect(mark?.tagName.toLowerCase()).toBe('svg');
   });
 });
