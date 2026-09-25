@@ -48,6 +48,9 @@ export class AuthApi {
   private resolveReady!: () => void;
 
   private saveTimer: ReturnType<typeof setTimeout> | undefined;
+  private lastSavedSerialized: string | null = null;
+  private pendingSerializedForVisibility: string | null = null;
+  private visibilityListenerAdded = false;
 
   constructor() {
     this.readyPromise = new Promise((resolve) => {
@@ -188,16 +191,57 @@ export class AuthApi {
 
   /** Persists the full app state blob, debounced so rapid edits don't spam the API. */
   saveState(state: Record<string, unknown>) {
-    if (!this.browser || !this.isAuthenticated()) {
+    // Opt-out guard: set `localStorage.setItem('job-finder.disable-remote-sync','1')`
+    // in the browser console to immediately disable remote state sync.
+    if (
+      !this.browser ||
+      !this.isAuthenticated() ||
+      (this.browser && localStorage.getItem('job-finder.disable-remote-sync') === '1')
+    ) {
       return;
     }
+
+    // Avoid sending if payload hasn't changed.
+    let serialized: string;
+    try {
+      serialized = JSON.stringify(state);
+    } catch {
+      serialized = String(state);
+    }
+    if (this.lastSavedSerialized === serialized) {
+      return;
+    }
+
+    // If the document is hidden, defer the save until it becomes visible.
+    if (this.browser && typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+      this.pendingSerializedForVisibility = serialized;
+      if (!this.visibilityListenerAdded) {
+        this.visibilityListenerAdded = true;
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible' && this.pendingSerializedForVisibility) {
+            // Parse and call saveState again; this will re-check equality and proceed.
+            try {
+              const pending = JSON.parse(this.pendingSerializedForVisibility);
+              this.pendingSerializedForVisibility = null;
+              this.saveState(pending as Record<string, unknown>);
+            } catch {
+              this.pendingSerializedForVisibility = null;
+            }
+          }
+        });
+      }
+      return;
+    }
+
     clearTimeout(this.saveTimer);
     this.saveTimer = setTimeout(() => {
-      firstValueFrom(
-        this.http.put(`${API_URL}/state`, state, this.authHeaders()),
-      ).catch(() => {
-        // Best-effort: a failed save will be retried on the next change.
-      });
+      firstValueFrom(this.http.put(`${API_URL}/state`, state, this.authHeaders()))
+        .then(() => {
+          this.lastSavedSerialized = serialized;
+        })
+        .catch(() => {
+          // Best-effort: a failed save will be retried on the next change.
+        });
     }, 500);
   }
 }
