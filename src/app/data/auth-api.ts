@@ -121,42 +121,28 @@ export class AuthApi {
   }
 
   async requestPasswordReset(email: string) {
-    this.authError.set(null);
     try {
-      const response = await firstValueFrom(
-        this.http.post<MessageResponse>(`${API_URL}/auth/password-reset/request`, { email }),
-      );
-      return response.message;
-    } catch (error) {
-      this.authError.set(this.messageFor(error));
-      return null;
-    }
-  }
-
-  /** Fetch current account state from the API and update `initialState`. */
-  async fetchState() {
-    try {
-      const me = await firstValueFrom(this.http.get<AuthResponse>(`${API_URL}/auth/me`, this.authHeaders(this.token())));
-      this.initialState.set(me.state);
-      return true;
-    } catch {
-      return false;
+      await firstValueFrom(this.http.post(`${API_URL}/auth/password-reset/request`, { email }));
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: this.messageFor(err) };
     }
   }
 
   async confirmPasswordReset(token: string, password: string) {
-    this.authError.set(null);
     try {
-      const response = await firstValueFrom(
-        this.http.post<MessageResponse>(`${API_URL}/auth/password-reset/confirm`, {
-          token,
-          password,
-        }),
-      );
-      return response.message;
-    } catch (error) {
-      this.authError.set(this.messageFor(error));
-      return null;
+      await firstValueFrom(this.http.post(`${API_URL}/auth/password-reset/confirm`, { token, password }));
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: this.messageFor(err) };
+    }
+  }
+    try {
+      await firstValueFrom(this.http.post(`${API_URL}/auth/password-reset/confirm`, { token, password }));
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: this.messageFor(err) };
+>>>>>>> master
     }
   }
 

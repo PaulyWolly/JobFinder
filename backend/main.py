@@ -9,6 +9,8 @@ from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from typing import Any
 
+import asyncio
+
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
@@ -39,15 +41,20 @@ app.add_middleware(
 @app.on_event("startup")
 async def on_startup() -> None:
     init_db()
-    # start background mail poller if configured
-    try:
-        import mail_poll
-        import asyncio as _asyncio
+    # Start mail poller only when explicitly enabled via env var.
+    enabled = os.environ.get('MAIL_POLL_ENABLED', 'false').lower() in ('1', 'true', 'yes')
+    if enabled:
+        try:
+            import mail_poll
 
-        _asyncio.create_task(mail_poll.run_poll_loop())
-    except Exception:
-        # non-fatal: continue without mail poller
-        pass
+            # Schedule background task; mail_poll.run_poll_loop is async
+            try:
+                asyncio.create_task(mail_poll.run_poll_loop())
+            except RuntimeError:
+                # If there's no running loop (unlikely under uvicorn), skip starting.
+                print('Mail poller not started: event loop unavailable', flush=True)
+        except Exception as exc:
+            print(f'Failed to initialize mail poller: {exc}', flush=True)
 
 
 class SearchRequest(BaseModel):
@@ -166,6 +173,7 @@ def request_password_reset(body: PasswordResetRequest, db: Session = Depends(get
     if user is not None:
         raw_token = secrets.token_urlsafe(32)
         token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+        # Invalidate existing unused tokens for user
         db.query(PasswordResetToken).filter(
             PasswordResetToken.user_id == user.id,
             PasswordResetToken.used_at.is_(None),

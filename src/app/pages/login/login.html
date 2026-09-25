@@ -43,6 +43,10 @@
         </label>
       }
 
+      <p class="forgot">
+        <a href="#" (click)="showForgot()">Forgot password?</a>
+      </p>
+
       @if (authError()) {
         <p class="error">{{ authError() }}</p>
       }
@@ -80,6 +84,33 @@
       <button type="button" class="link forgot-link" (click)="showForgotPassword()">
         Forgot password?
       </button>
+    }
+
+    @if (showResetRequest()) {
+      <div class="reset-card">
+        <h3>Reset password</h3>
+        <form (submit)="submitResetRequest($event)">
+          <label>
+            Email
+            <input type="email" [(ngModel)]="resetModel.email" />
+          </label>
+          <button class="primary" type="submit" [disabled]="resetSubmitting()">Send reset link</button>
+        </form>
+        <form (submit)="submitResetConfirm($event)">
+          <label>
+            Token
+            <input type="text" [(ngModel)]="confirmModel.token" />
+          </label>
+          <label>
+            New password
+            <input type="password" [(ngModel)]="confirmModel.password" />
+          </label>
+          <button class="primary" type="submit" [disabled]="resetSubmitting()">Set new password</button>
+        </form>
+        @if (resetMessage()) {
+          <p class="note">{{ resetMessage() }}</p>
+        }
+      </div>
     }
 
     <div class="divider"><span>or</span></div>

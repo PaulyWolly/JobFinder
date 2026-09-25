@@ -23,9 +23,10 @@ def _env_setting(*names: str, default: str = "") -> str:
 
 
 def _format_date(dt: datetime) -> tuple[str, str]:
-    # returns (date, time)
     local = dt.astimezone() if dt.tzinfo else dt.replace(tzinfo=timezone.utc).astimezone()
-    return local.strftime("%m-%d-%Y"), local.strftime("%-I:%M %p")
+    # Use a portable hour format (avoid %-I on Windows)
+    hour = local.strftime("%I").lstrip('0') or '0'
+    return local.strftime("%m-%d-%Y"), f"{hour}:{local.strftime('%M %p')}"
 
 
 def _parse_message(raw: bytes) -> dict[str, Any] | None:
@@ -48,7 +49,6 @@ def _parse_message(raw: bytes) -> dict[str, Any] | None:
 
 
 def _add_inbox_items_for_user(db, user: User, items: list[dict[str, Any]]) -> None:
-    # Load existing state JSON, merge inbox items (avoid dupes), and persist.
     state_row = user.state
     if state_row is None:
         state_obj: dict[str, Any] = {
@@ -135,18 +135,28 @@ def _fetch_unseen(imap_host: str, imap_port: int, username: str, password: str) 
 
 
 async def run_poll_loop() -> None:
+    """Long-running poll loop. Disabled by default; honor environment flags and backoff on errors."""
     load_dotenv()
+    enabled = os.environ.get('MAIL_POLL_ENABLED', 'false').lower() in ('1', 'true', 'yes')
+    if not enabled:
+        print('Mail poller disabled (MAIL_POLL_ENABLED not set)', flush=True)
+        return
+
     imap_host = _env_setting('IMAP_HOST') or (_env_setting('SMTP_HOST').replace('smtp.', 'imap.') if _env_setting('SMTP_HOST') else 'imap.gmail.com')
     imap_port = int(_env_setting('IMAP_PORT') or '993')
     username = _env_setting('IMAP_USERNAME', 'SMTP_USERNAME')
     password = _env_setting('IMAP_PASSWORD', 'SMTP_PASSWORD')
-    interval = int(_env_setting('MAIL_POLL_INTERVAL') or '60')
+    try:
+        interval = max(15, int(_env_setting('MAIL_POLL_INTERVAL') or '60'))
+    except Exception:
+        interval = 60
 
     if not username or not password:
         print('Mail poller skipped: IMAP/SMTP credentials missing', flush=True)
         return
 
     print(f'Mail poller starting for {username} (host={imap_host}) interval={interval}s', flush=True)
+    backoff = 1
     while True:
         try:
             items = await asyncio.to_thread(_fetch_unseen, imap_host, imap_port, username, password)
@@ -156,13 +166,13 @@ async def run_poll_loop() -> None:
                     user = db.query(User).filter(User.email == username.lower()).one_or_none()
                     if user:
                         _add_inbox_items_for_user(db, user, items)
-                    else:
-                        # No matching user; do nothing.
-                        pass
                 finally:
                     db.close()
+            backoff = 1
         except Exception as exc:
             print(f'Mail poller error: {exc}', flush=True)
+            await asyncio.sleep(min(60, backoff))
+            backoff = min(60, backoff * 2)
         await asyncio.sleep(interval)
 
 

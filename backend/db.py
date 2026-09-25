@@ -59,6 +59,7 @@ class PasswordResetToken(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     used_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
+    user: Mapped[User] = relationship()
 
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
