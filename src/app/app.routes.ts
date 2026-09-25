@@ -3,7 +3,7 @@ import { Applications } from './pages/applications/applications';
 import { Dashboard } from './pages/dashboard/dashboard';
 import { Faq } from './pages/faq/faq';
 import { HowItWorks } from './pages/how-it-works/how-it-works';
-import { Inbox } from './pages/inbox/inbox';
+// Inbox page removed/hidden (moved to inbox.disabled)
 import { Jobs } from './pages/jobs/jobs';
 import { Login } from './pages/login/login';
 import { Profile } from './pages/profile/profile';
@@ -16,7 +16,7 @@ export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
   { path: 'dashboard', component: Dashboard, canActivate: [authGuard] },
   { path: 'applications', component: Applications, canActivate: [authGuard] },
-  { path: 'inbox', component: Inbox, canActivate: [authGuard] },
+  // Inbox route removed
   { path: 'settings', component: SearchSettings, canActivate: [authGuard] },
   { path: 'profile', component: Profile, canActivate: [authGuard] },
   { path: 'how-it-works', component: HowItWorks, canActivate: [authGuard] },
