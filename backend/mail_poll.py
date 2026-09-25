@@ -97,6 +97,8 @@ def _fetch_unseen(imap_host: str, imap_port: int, username: str, password: str) 
             typ, data = M.search(None, 'UNSEEN')
         except imaplib.IMAP4.error as exc:
             msg = str(exc)
+            # Some IMAP servers refuse SEARCH when the result would be very large.
+            # Fall back to a recent SINCE window (last 7 days) to limit the result set.
             if 'got more than' in msg or 'more than' in msg:
                 try:
                     from datetime import datetime, timedelta
@@ -175,6 +177,10 @@ async def run_poll_loop() -> None:
 
 
 def fetch_and_import_once() -> int:
+    """Synchronous helper: fetch unseen messages and import them for the configured user.
+
+    Returns the number of items imported.
+    """
     load_dotenv()
     imap_host = _env_setting('IMAP_HOST') or (_env_setting('SMTP_HOST').replace('smtp.', 'imap.') if _env_setting('SMTP_HOST') else 'imap.gmail.com')
     imap_port = int(_env_setting('IMAP_PORT') or '993')

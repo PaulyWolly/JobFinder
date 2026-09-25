@@ -9,8 +9,12 @@
       <h1><span>Job</span><span class="auth-brand-finder">Finder</span></h1>
     </div>
     <p class="subtitle">
-      @if (mode() === 'login') {
-        Sign in, look for jobs, and manage your applications.
+      @if (mode() === 'forgot') {
+        Enter your email and we’ll send a secure password reset link.
+      } @else if (mode() === 'reset') {
+        Choose a new password for your JobFinder account.
+      } @else if (mode() === 'login') {
+        Sign in, find jobs and sync your searches and applications.
       } @else {
         Create a free account for unlimited job applications.
       }
@@ -25,19 +29,19 @@
     }
 
     <form (submit)="submit($event)">
-      <label>
+      @if (mode() !== 'reset') {
+        <label>
         Email
         <input type="email" autocomplete="email" [formField]="loginForm.email" />
-      </label>
+        </label>
+      }
 
-      <label>
+      @if (mode() !== 'forgot') {
+        <label>
         Password
-        <input type="password" autocomplete="current-password" [formField]="loginForm.password" />
-      </label>
-
-      <p class="forgot">
-        <a href="#" (click)="showForgot()">Forgot password?</a>
-      </p>
+        <input type="password" [autocomplete]="mode() === 'reset' ? 'new-password' : 'current-password'" [formField]="loginForm.password" />
+        </label>
+      }
 
       @if (authError()) {
         <p class="error">{{ authError() }}</p>
@@ -48,55 +52,46 @@
           Please wait…
         } @else if (mode() === 'login') {
           Log in
+        } @else if (mode() === 'forgot') {
+          Send reset link
+        } @else if (mode() === 'reset') {
+          Update password
         } @else {
           Create account
         }
       </button>
     </form>
 
-    <button type="button" class="link" (click)="toggleMode()">
+    @if (resetMessage()) {
+      <p class="success">{{ resetMessage() }}</p>
+    }
+
+    @if (mode() === 'login' || mode() === 'signup') {
+      <button type="button" class="link" (click)="toggleMode()">
       @if (mode() === 'login') {
         Need an account? Sign up
       } @else {
         Already have an account? Log in
       }
-    </button>
-
-    @if (showResetRequest()) {
-      <div class="reset-card">
-        <h3>Reset password</h3>
-        <form (submit)="submitResetRequest($event)">
-          <label>
-            Email
-            <input type="email" [(ngModel)]="resetModel.email" />
-          </label>
-          <button class="primary" type="submit" [disabled]="resetSubmitting()">Send reset link</button>
-        </form>
-        <form (submit)="submitResetConfirm($event)">
-          <label>
-            Token
-            <input type="text" [(ngModel)]="confirmModel.token" />
-          </label>
-          <label>
-            New password
-            <input type="password" [(ngModel)]="confirmModel.password" />
-          </label>
-          <button class="primary" type="submit" [disabled]="resetSubmitting()">Set new password</button>
-        </form>
-        @if (resetMessage()) {
-          <p class="note">{{ resetMessage() }}</p>
-        }
-      </div>
+      </button>
     }
 
-    <div class="divider"><span>or</span></div>
+    @if (mode() === 'login') {
+      <button type="button" class="link forgot-link" (click)="showForgotPassword()">
+        Forgot password?
+      </button>
+    }
 
-    <button type="button" class="ghost" (click)="continueAsGuest()">
-      Continue as Guest
-    </button>
-    <p class="guest-note">
-      Guests can browse and save up to {{ guestSaveLimit }} jobs, but must create a free account
-      before applying.
-    </p>
+    @if (mode() === 'login' || mode() === 'signup') {
+      <div class="divider"><span>or</span></div>
+
+      <button type="button" class="ghost" (click)="continueAsGuest()">
+        Continue as Guest
+      </button>
+      <p class="guest-note">
+        Guests can browse and save up to {{ guestSaveLimit }} jobs, but must create a free account
+        before applying.
+      </p>
+    }
   </div>
 </section>

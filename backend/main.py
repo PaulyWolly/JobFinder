@@ -1,23 +1,21 @@
 from __future__ import annotations
 
-import json
-from typing import Any
-
-import os
-
 import hashlib
+import json
+import os
 import secrets
 import smtplib
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
+from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 
-from auth import create_access_token, get_current_user, hash_password, verify_password
 from db import PasswordResetToken, User, UserState, get_db, init_db
+from auth import create_access_token, get_current_user, hash_password, verify_password
 from jobs import search_jobs
 
 app = FastAPI(title="Job Finder API", version="1.4.0")
@@ -39,7 +37,7 @@ app.add_middleware(
 
 
 @app.on_event("startup")
-def on_startup() -> None:
+async def on_startup() -> None:
     init_db()
 
 
