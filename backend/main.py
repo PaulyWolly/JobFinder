@@ -41,20 +41,11 @@ app.add_middleware(
 @app.on_event("startup")
 async def on_startup() -> None:
     init_db()
-    # Start mail poller only when explicitly enabled via env var.
-    enabled = os.environ.get('MAIL_POLL_ENABLED', 'false').lower() in ('1', 'true', 'yes')
-    if enabled:
-        try:
-            import mail_poll
-
-            # Schedule background task; mail_poll.run_poll_loop is async
-            try:
-                asyncio.create_task(mail_poll.run_poll_loop())
-            except RuntimeError:
-                # If there's no running loop (unlikely under uvicorn), skip starting.
-                print('Mail poller not started: event loop unavailable', flush=True)
-        except Exception as exc:
-            print(f'Failed to initialize mail poller: {exc}', flush=True)
+    # Mail poller removed: background IMAP polling was causing runaway servers.
+    # The poller implementation was archived to mail_poll.disabled.py and the
+    # active polling module removed. To restore, move the archived file back and
+    # reintroduce a guarded startup path.
+    print('Mail poller is disabled (module removed)', flush=True)
 
 
 class SearchRequest(BaseModel):
@@ -243,10 +234,7 @@ async def jobs_search(body: SearchRequest) -> dict[str, Any]:
 
 @app.post("/mail/fetch")
 def mail_fetch() -> dict[str, Any]:
-    try:
-        import mail_poll
-
-        count = mail_poll.fetch_and_import_once()
-        return {"imported": count}
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+    # Mail fetch endpoint removed — background mail polling has been removed
+    # to prevent runaway processes. If you need a one-shot import restore the
+    # archived poller and add a guarded endpoint.
+    raise HTTPException(status_code=404, detail="Mail fetch endpoint removed")
