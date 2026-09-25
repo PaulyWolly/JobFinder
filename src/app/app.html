@@ -1,5 +1,73 @@
-<app-header [title]="title()" />
+@if (authApi.isSignedIn()) {
+  <app-header [title]="title()" />
+}
 
-<main class="main" [attr.data-url]="activeUrl()">
+<main class="main" [class.auth-main]="!authApi.isSignedIn()" [attr.data-url]="activeUrl()">
+  @if (authApi.isSignedIn()) {
+    <div class="topbar">
+      <span class="topbar-greeting">Hi, {{ store.displayName() }}!</span>
+      <div class="profile-menu">
+        <button
+          type="button"
+          class="profile-trigger"
+          aria-label="Open account menu"
+          [attr.aria-expanded]="profileMenuOpen()"
+          (click)="toggleProfileMenu()"
+        >
+          @if (store.profile().photoUrl) {
+            <img [src]="store.profile().photoUrl" alt="" />
+          } @else {
+            <span>{{ store.displayName().charAt(0) }}</span>
+          }
+        </button>
+
+        @if (profileMenuOpen()) {
+          <div class="profile-dropdown" role="menu">
+            <div class="profile-summary">
+              @if (store.profile().photoUrl) {
+                <img [src]="store.profile().photoUrl" alt="" />
+              } @else {
+                <span>{{ store.displayName().charAt(0) }}</span>
+              }
+              <div>
+                <strong>{{ store.displayName() }}</strong>
+                <small>{{ authApi.isGuest() ? 'Guest account' : authApi.email() }}</small>
+              </div>
+            </div>
+            <a routerLink="/profile" role="menuitem" (click)="closeProfileMenu()">My Profile</a>
+            <button type="button" role="menuitem" (click)="logout()">Log out</button>
+          </div>
+        }
+      </div>
+    </div>
+  }
   <router-outlet />
+
+  @if (authApi.showOnboarding()) {
+    <div class="onboarding-backdrop">
+      <section
+        class="onboarding-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="onboarding-title"
+      >
+        <p class="onboarding-kicker">Account created</p>
+        <h2 id="onboarding-title">Set up <span class="brand-inline">Job<em>Finder</em></span> before you apply</h2>
+        <p>
+          Your free account is ready. Complete these steps so your searches and application details
+          are ready to use:
+        </p>
+        <ol>
+          <li>Complete your Profile, including contact details and any resume information.</li>
+          <li>Fill out and save all Search Settings fields.</li>
+          <li>Return to Jobs, save roles to Applications, and apply from there.</li>
+        </ol>
+        <div class="onboarding-actions">
+          <a class="primary" routerLink="/profile" (click)="closeOnboarding()">Complete Profile</a>
+          <a class="ghost" routerLink="/settings" (click)="closeOnboarding()">Search Settings</a>
+          <button type="button" class="link" (click)="closeOnboarding()">I’ll do this later</button>
+        </div>
+      </section>
+    </div>
+  }
 </main>

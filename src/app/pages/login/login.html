@@ -1,0 +1,102 @@
+<section class="auth-page">
+  <div class="auth-card">
+    <div class="auth-brand" aria-label="JobFinder">
+      <svg class="auth-brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="10.5" cy="10.5" r="6.25"></circle>
+        <text x="10.5" y="11.55" text-anchor="middle">Jobs</text>
+        <path d="m15.25 15.25 5 5"></path>
+      </svg>
+      <h1><span>Job</span><span class="auth-brand-finder">Finder</span></h1>
+    </div>
+    <p class="subtitle">
+      @if (mode() === 'login') {
+        Sign in to sync your searches and applications everywhere.
+      } @else {
+        Create a free account for unlimited job applications.
+      }
+    </p>
+
+    @if (mode() === 'signup' && returnUrl() === '/applications') {
+      <p class="apply-disclaimer">
+        You need a free account to continue applying for jobs. Before you can apply, complete your
+        Profile and configure your Search Settings so employers receive the details you intend to
+        use.
+      </p>
+    }
+
+    <form (submit)="submit($event)">
+      <label>
+        Email
+        <input type="email" autocomplete="email" [formField]="loginForm.email" />
+      </label>
+
+      <label>
+        Password
+        <input type="password" autocomplete="current-password" [formField]="loginForm.password" />
+      </label>
+
+      <p class="forgot">
+        <a href="#" (click)="showForgot()">Forgot password?</a>
+      </p>
+
+      @if (authError()) {
+        <p class="error">{{ authError() }}</p>
+      }
+
+      <button type="submit" class="primary" [disabled]="submitting()">
+        @if (submitting()) {
+          Please wait…
+        } @else if (mode() === 'login') {
+          Log in
+        } @else {
+          Create account
+        }
+      </button>
+    </form>
+
+    <button type="button" class="link" (click)="toggleMode()">
+      @if (mode() === 'login') {
+        Need an account? Sign up
+      } @else {
+        Already have an account? Log in
+      }
+    </button>
+
+    @if (showResetRequest()) {
+      <div class="reset-card">
+        <h3>Reset password</h3>
+        <form (submit)="submitResetRequest($event)">
+          <label>
+            Email
+            <input type="email" [(ngModel)]="resetModel.email" />
+          </label>
+          <button class="primary" type="submit" [disabled]="resetSubmitting()">Send reset link</button>
+        </form>
+        <form (submit)="submitResetConfirm($event)">
+          <label>
+            Token
+            <input type="text" [(ngModel)]="confirmModel.token" />
+          </label>
+          <label>
+            New password
+            <input type="password" [(ngModel)]="confirmModel.password" />
+          </label>
+          <button class="primary" type="submit" [disabled]="resetSubmitting()">Set new password</button>
+        </form>
+        @if (resetMessage()) {
+          <p class="note">{{ resetMessage() }}</p>
+        }
+      </div>
+    }
+
+    <div class="divider"><span>or</span></div>
+
+    <button type="button" class="ghost" (click)="continueAsGuest()">
+      Continue as Guest
+    </button>
+    <p class="guest-note">
+      Guests can browse and save up to {{ guestSaveLimit }} jobs, but must create a free account
+      before applying.
+    </p>
+  </div>
+</section>

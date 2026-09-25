@@ -22,18 +22,19 @@ describe('Header', () => {
   });
 
   it('should show the app title and primary links', async () => {
-    fixture.componentRef.setInput('title', 'Job Finder');
+    fixture.componentRef.setInput('title', 'JobFinder');
     await fixture.whenStable();
 
     const text = fixture.nativeElement.textContent as string;
-    expect(text).toContain('Job Finder');
+    expect(text).toContain('JobFinder');
     expect(text).toContain('Dashboard');
     expect(text).toContain('Applications');
-    expect(text).toContain('How Job Finder Works');
+    expect(text).toContain('How JobFinder Works');
     expect(text).toContain('Profile');
-    expect(text).toContain('My Profile');
 
-    const mark = fixture.nativeElement.querySelector('.brand-mark') as HTMLImageElement | null;
-    expect(mark?.getAttribute('src')).toBe('job-search-blue.svg?v=2');
+    const mark = fixture.nativeElement.querySelector('.brand-mark') as Element | null;
+    // mark is now an inline SVG element; assert it's present and is an SVG
+    expect(mark).not.toBeNull();
+    expect(mark?.tagName.toLowerCase()).toBe('svg');
   });
 });

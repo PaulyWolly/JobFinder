@@ -22,6 +22,7 @@ export class Jobs {
   readonly query = signal('');
   readonly selected = signal<WorkType[]>([]);
   readonly selectedSources = signal<string[]>([]);
+  readonly guestSaveLimitReached = signal(false);
   readonly remoteOnly = signal(false);
   readonly usOnly = signal(/us|united states|usa/i.test(this.store.searchCriteria().locations));
 
@@ -32,8 +33,14 @@ export class Jobs {
   readonly visibleJobs = computed(() => this.remainingJobs().filter((job) => this.matches(job)));
 
   readonly sourceOptions = computed(() => {
+    if (this.listings.isLoading()) {
+      return [];
+    }
     const counts = new Map<string, number>();
     for (const job of this.remainingJobs()) {
+      if (!this.matches(job, true)) {
+        continue;
+      }
       counts.set(job.source, (counts.get(job.source) ?? 0) + 1);
     }
     return [...counts.entries()]
@@ -88,7 +95,13 @@ export class Jobs {
 
   refresh() {
     this.selectedSources.set([]);
-    this.listings.reload();
+    this.jobsApi.refresh();
+  }
+
+  saveJob(job: FoundJob) {
+    if (!this.store.queueJob(job) && this.store.guestSaveLimitReached()) {
+      this.guestSaveLimitReached.set(true);
+    }
   }
 
   private matches(job: FoundJob, skipSource = false) {
@@ -127,9 +140,15 @@ export class Jobs {
 
   private matchesType(haystack: string, type: (typeof TYPE_FILTERS)[number]) {
     if (type === 'Full-time') {
-      return haystack.includes('full-time') || haystack.includes('full time') || haystack.includes('fulltime');
+      return (
+        haystack.includes('full-time') ||
+        haystack.includes('full time') ||
+        haystack.includes('fulltime') ||
+        haystack.includes('full_time') ||
+        (!haystack.includes('contract') && !haystack.includes('freelance'))
+      );
     }
-    return haystack.includes('contract') || haystack.includes('freelance');
+    return haystack.includes('contract') || haystack.includes('freelance') || haystack.includes('contractor');
   }
 
   private matchesPlace(haystack: string, place: (typeof PLACE_FILTERS)[number]) {

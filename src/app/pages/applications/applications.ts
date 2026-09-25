@@ -1,6 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { afterNextRender, Component, computed, DestroyRef, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { AuthApi } from '../../data/auth-api';
 import { ApplicationTab, JobFinderStore, JobPosting } from '../../data/job-finder-store';
 
 @Component({
@@ -11,6 +12,8 @@ import { ApplicationTab, JobFinderStore, JobPosting } from '../../data/job-finde
 })
 export class Applications {
   private readonly document = inject(DOCUMENT);
+  private readonly router = inject(Router);
+  protected readonly authApi = inject(AuthApi);
   protected readonly store = inject(JobFinderStore);
   readonly tab = signal<ApplicationTab>('action');
   readonly query = signal('');
@@ -19,7 +22,6 @@ export class Applications {
   private leftPage = false;
 
   readonly promptJob = computed(() => (this.askApplied() ? this.store.pendingApplyJob() : null));
-
   readonly visibleJobs = computed(() => {
     const q = this.query().trim().toLowerCase();
     return this.store.jobs().filter((job) => {
@@ -75,6 +77,12 @@ export class Applications {
   }
 
   beginApply(job: JobPosting) {
+    if (this.authApi.isGuest()) {
+      this.router.navigate(['/login'], {
+        queryParams: { mode: 'signup', returnUrl: '/applications' },
+      });
+      return;
+    }
     this.askApplied.set(false);
     this.leftPage = false;
     this.store.startApply(job.id);

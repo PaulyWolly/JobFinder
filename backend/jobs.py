@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 import html
 import os
 import re
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -18,6 +20,11 @@ HEADERS = {
 
 TAG = re.compile(r"<[^>]+>")
 _ENV_LOADED = False
+SOURCE_TIMEOUT = 8.0
+# Pagination isn't capped by result count anymore; a time budget just keeps one
+# slow source (e.g. a large paginated board) from stalling the whole search.
+PAGINATION_BUDGET = 15.0
+PAGE_SAFETY_CEILING = 60
 
 
 def load_dotenv() -> None:
@@ -305,7 +312,14 @@ NON_US = re.compile(
     r"deutschland|germany|berlin|munich|münchen|hamburg|frankfurt|köln|cologne|"
     r"amsterdam|netherlands|london|united kingdom|\buk\b|india|bangalore|"
     r"hyderabad|poland|portugal|spain|france|sweden|norway|denmark|austria|"
-    r"switzerland|europe|european|emea|m/f/d|m/w/d|\bgmbh\b",
+    r"switzerland|europ|emea|m/f/d|m/w/d|\bgmbh\b|"
+    r"sri lanka|colombo|brazil|brasil|argentina|mexico|méxico|colombia|"
+    r"peru|chile|venezuela|philippines|manila|pakistan|bangladesh|nigeria|"
+    r"vietnam|indonesia|jakarta|ukraine|russia|romania|bulgaria|serbia|"
+    r"turkey|istanbul|egypt|morocco|kenya|nairobi|south africa|china|"
+    r"beijing|shanghai|japan|tokyo|\bkorea\b|seoul|singapore|malaysia|"
+    r"thailand|bangkok|dubai|\buae\b|saudi arabia|israel|tel aviv|"
+    r"latam|apac",
     re.I,
 )
 US_POSITIVE = re.compile(
@@ -320,6 +334,28 @@ US_POSITIVE = re.compile(
 )
 WANT_US = re.compile(r"\b(us|usa|u\.s\.a?\.?|united states)\b", re.I)
 
+# An explicit "Location: <place>" (or "Localização"/"Localização:" etc.) in a
+# job's own description is a stronger, more specific signal than a board's
+# generic country-restriction field (which often just means "who can apply
+# from", not "where the role is based").
+EXPLICIT_LOCATION = re.compile(
+    r"loca(?:tion|liza[cç][aã]o)\s*:?\s*([^\n.]{2,80}?)(?=\s+for\b|[.\n]|$)", re.I
+)
+
+# Some boards (Himalayas in particular) mislabel jobs as "United States" in
+# their location/country-restriction metadata even when the entire posting is
+# written in Portuguese or Spanish. These are unambiguous, English-unlikely
+# job-posting terms; two or more matches indicate the posting itself (not just
+# a stray word) is non-English, which we treat as decisive over a mismatched
+# location field.
+NON_ENGLISH_POSTING = re.compile(
+    r"\bdesenvolvedor(a)?\b|\bdesenvolvimento\b|\bcontrata(cao|ndo)\b|"
+    r"\bempresa\b|\bvagas?\b|\bhabilidades\b|\bbeneficios\b|\bsalario\b|"
+    r"\bcandidato\b|\bexperiencia\b|\brequisitos\b|\bcolaborador(a)?\b|"
+    r"\bdesarrollador(a)?\b|\bvacante\b|\bhabilidades\b|\bsolicitante\b",
+    re.I,
+)
+
 
 def is_us_job(job: dict[str, Any]) -> bool:
     location = str(job.get("location") or "")
@@ -333,10 +369,20 @@ def is_us_job(job: dict[str, Any]) -> bool:
     company_lower = company.lower()
 
     remote_us = 'remote' in location_lower and 'us' in location_lower
-    non_us_in_body = bool(NON_US.search(f"{title} {company} {snippet} {rank}"))
+    body = f"{title} {company} {snippet} {rank}"
+    non_us_in_body = bool(NON_US.search(body))
     if remote_us and non_us_in_body:
         return False
 
+    # A job description that explicitly states its own location (e.g.
+    # "Location: Fort Colombo, Sri Lanka") overrides a board's generic
+    # country-restriction text, since the restriction field can be wrong.
+    explicit_match = EXPLICIT_LOCATION.search(body)
+    if explicit_match and NON_US.search(explicit_match.group(1)) and not US_POSITIVE.search(explicit_match.group(1)):
+        return False
+
+    if len(NON_ENGLISH_POSTING.findall(body)) >= 2:
+        return False
     if re.search(r"\bgmbh\b|deutschland|germany|berlin|munich|münchen|frankfurt|cologne|amsterdam|netherlands|london|united kingdom|sweden|denmark|france|austria|switzerland|poland|spain|portugal|india|bangalore|hyderabad", company_lower):
         if "remote" in location_lower and not re.search(r"\b(?:united states|usa|u\.s\.?a?\.?|\bus\b)\b", company_lower):
             return False
@@ -368,14 +414,36 @@ async def fetch_json(
     params: dict[str, str] | None = None,
 ) -> Any:
     try:
-        response = await client.get(url, headers={**HEADERS, **(headers or {})}, params=params, timeout=18.0)
+        response = await client.get(url, headers={**HEADERS, **(headers or {})}, params=params, timeout=SOURCE_TIMEOUT)
         response.raise_for_status()
         return response.json()
     except Exception:
         return {}
 
 
-async def load_remotive(client: httpx.AsyncClient, query: str) -> list[dict[str, Any]]:
+def remote_location(raw: str, want_us: bool) -> str:
+    """Tag a location as remote for boards that are 100% remote by nature.
+
+    Sites like Himalayas, Remotive, Jobicy, and Remote OK only list remote
+    roles, but their raw location text (e.g. "United States") often omits the
+    word "remote". Without this, the UI's Remote filter would incorrectly
+    hide genuinely remote listings.
+
+    Important: when the raw location is unknown/empty, this must NOT assume
+    US just because the caller wants US results — that previously caused
+    non-US jobs (e.g. Sri Lanka, Brazil) with no location data to be mislabeled
+    "Remote (US)" and slip past the US filter. Unknown location stays
+    "Remote" and is left to the title/company/snippet checks in is_us_job().
+    """
+    text = str(raw or "").strip()
+    if not text:
+        return "Remote"
+    if "remote" in text.lower() or "worldwide" in text.lower() or "anywhere" in text.lower():
+        return text
+    return f"Remote ({text})"
+
+
+async def load_remotive(client: httpx.AsyncClient, query: str, want_us: bool = False) -> list[dict[str, Any]]:
     payload = await fetch_json(client, f"https://remotive.com/api/remote-jobs?search={quote_plus(query)}")
     jobs: list[dict[str, Any]] = []
     for item in payload.get("jobs", []) if isinstance(payload, dict) else []:
@@ -385,7 +453,7 @@ async def load_remotive(client: httpx.AsyncClient, query: str) -> list[dict[str,
             company=item.get("company_name", ""),
             published=item.get("publication_date", ""),
             work_type=item.get("job_type", "Remote"),
-            location=item.get("candidate_required_location", "Remote"),
+            location=remote_location(item.get("candidate_required_location", ""), want_us),
             salary=item.get("salary", ""),
             source="Remotive",
             url=item.get("url", ""),
@@ -450,8 +518,11 @@ async def load_muse(client: httpx.AsyncClient, query: str, want_us: bool) -> lis
     first = await fetch_json(client, url_for(0))
     page_count = int(first.get("page_count") or 1) if isinstance(first, dict) else 1
     payloads: list[Any] = [first]
-    extra_pages = list(range(1, page_count))
+    extra_pages = list(range(1, min(page_count, PAGE_SAFETY_CEILING)))
+    started = time.monotonic()
     for start in range(0, len(extra_pages), 8):
+        if time.monotonic() - started > PAGINATION_BUDGET:
+            break
         batch = extra_pages[start : start + 8]
         payloads.extend(
             await asyncio.gather(*[fetch_json(client, url_for(page)) for page in batch], return_exceptions=True)
@@ -507,7 +578,7 @@ async def load_jobicy(client: httpx.AsyncClient, query: str, want_us: bool) -> l
             company=item.get("companyName", ""),
             published=item.get("pubDate", ""),
             work_type=item.get("jobType", "Remote"),
-            location=item.get("jobGeo", "Remote"),
+            location=remote_location(str(item.get("jobGeo", "") or ""), want_us),
             salary=salary,
             source="Jobicy",
             url=item.get("url", ""),
@@ -537,7 +608,7 @@ async def load_remoteok(client: httpx.AsyncClient, query: str) -> list[dict[str,
             company=item.get("company", ""),
             published=item.get("date") or item.get("epoch"),
             work_type="Remote",
-            location=item.get("location", "Remote"),
+            location=remote_location(str(item.get("location", "") or ""), False),
             salary=str(item.get("salary_max") or item.get("salary_min") or ""),
             source="Remote OK",
             url=url,
@@ -553,6 +624,7 @@ async def load_himalayas(client: httpx.AsyncClient, query: str, want_us: bool) -
     jobs: list[dict[str, Any]] = []
     seen: set[str] = set()
     page = 1
+    started = time.monotonic()
     while True:
         payload = await fetch_json(
             client,
@@ -565,11 +637,10 @@ async def load_himalayas(client: httpx.AsyncClient, query: str, want_us: bool) -
         for item in items:
             restrictions = item.get("locationRestrictions") or []
             if isinstance(restrictions, list):
-                location = ", ".join(str(value) for value in restrictions if value) or (
-                    "Remote (US)" if want_us else "Remote"
-                )
+                location = ", ".join(str(value) for value in restrictions if value)
             else:
-                location = str(restrictions) or ("Remote (US)" if want_us else "Remote")
+                location = str(restrictions)
+            location = remote_location(location, want_us)
             salary_bits = [item.get("minSalary"), item.get("maxSalary"), item.get("currency")]
             salary = " ".join(str(bit) for bit in salary_bits if bit)
             categories = " ".join(str(value) for value in (item.get("categories") or []) if value)
@@ -594,7 +665,12 @@ async def load_himalayas(client: httpx.AsyncClient, query: str, want_us: bool) -
                 jobs.append(job)
                 added += 1
         total = payload.get("totalCount") if isinstance(payload, dict) else None
-        if added == 0 or (total is not None and len(jobs) >= int(total)):
+        if (
+            added == 0
+            or page >= PAGE_SAFETY_CEILING
+            or time.monotonic() - started > PAGINATION_BUDGET
+            or (total is not None and len(jobs) >= int(total))
+        ):
             break
         page += 1
     return jobs
@@ -660,7 +736,7 @@ async def load_jsearch(
                 "x-rapidapi-host": "jsearch.p.rapidapi.com",
             },
             params=params,
-            timeout=18.0,
+            timeout=SOURCE_TIMEOUT,
         )
         if response.status_code >= 400:
             print(f"JSearch HTTP {response.status_code}: {response.text[:180]}", flush=True)
@@ -715,7 +791,7 @@ async def load_jsearch(
     return jobs
 
 
-async def search_jobs(payload: dict[str, Any]) -> dict[str, Any]:
+async def _search_jobs_uncached(payload: dict[str, Any]) -> dict[str, Any]:
     titles = str(payload.get("titles") or "")
     skills = str(payload.get("skills") or "")
     locations = str(payload.get("locations") or "")
@@ -732,7 +808,7 @@ async def search_jobs(payload: dict[str, Any]) -> dict[str, Any]:
 
     async with httpx.AsyncClient(follow_redirects=True) as client:
         tasks = [
-            *[load_remotive(client, item) for item in queries],
+            *[load_remotive(client, item, want_us) for item in queries],
             *[load_himalayas(client, item, want_us) for item in queries],
             load_muse(client, query, want_us),
             load_remoteok(client, query),
@@ -779,3 +855,50 @@ async def search_jobs(payload: dict[str, Any]) -> dict[str, Any]:
         "jobs": ranked,
         "sources": [{"name": name, "count": count} for name, count in source_counts.items()],
     }
+
+
+# Caches full search results in memory so repeated identical searches (e.g. the
+# Refresh button, re-rendering, or several users sharing the same criteria)
+# reuse recent results instead of re-querying every external job board.
+SEARCH_CACHE_TTL = 120.0
+_search_cache: dict[str, tuple[float, dict[str, Any]]] = {}
+_search_cache_locks: dict[str, asyncio.Lock] = {}
+
+
+def _search_cache_key(payload: dict[str, Any]) -> str:
+    titles = str(payload.get("titles") or "").strip().lower()
+    skills = str(payload.get("skills") or "").strip().lower()
+    locations = str(payload.get("locations") or "").strip().lower()
+    work_types = ",".join(sorted(str(item).strip().lower() for item in payload.get("workTypes") or []))
+    clearance = str(payload.get("clearance") or "none").strip().lower()
+    mode = str(payload.get("mode") or "fast").strip().lower()
+    return "|".join([titles, skills, locations, work_types, clearance, mode])
+
+
+def clear_search_cache() -> None:
+    _search_cache.clear()
+
+
+async def search_jobs(payload: dict[str, Any]) -> dict[str, Any]:
+    key = _search_cache_key(payload)
+    force = bool(payload.get("force"))
+    now = time.monotonic()
+
+    if not force:
+        cached = _search_cache.get(key)
+        if cached and now - cached[0] < SEARCH_CACHE_TTL:
+            return copy.deepcopy(cached[1])
+
+    lock = _search_cache_locks.setdefault(key, asyncio.Lock())
+    async with lock:
+        # Re-check after acquiring the lock: another request may have already
+        # populated the cache while we were waiting.
+        if not force:
+            cached = _search_cache.get(key)
+            now = time.monotonic()
+            if cached and now - cached[0] < SEARCH_CACHE_TTL:
+                return copy.deepcopy(cached[1])
+
+        result = await _search_jobs_uncached(payload)
+        _search_cache[key] = (time.monotonic(), result)
+        return copy.deepcopy(result)

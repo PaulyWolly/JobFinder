@@ -1,5 +1,6 @@
 import { isPlatformBrowser } from '@angular/common';
 import { Service, afterNextRender, computed, effect, inject, PLATFORM_ID, signal } from '@angular/core';
+import { AuthApi, GUEST_SAVE_LIMIT } from './auth-api';
 
 const STORAGE_KEY = 'job-finder.state';
 const USER_KEY = 'job-finder.user';
@@ -9,6 +10,7 @@ export const DEFAULT_PROFILE: Profile = {
   firstName: 'Alex',
   lastName: 'Chen',
   email: 'alex.chen@example.com',
+  photoUrl: '',
   phone: '(555) 010-2048',
   address: '120 Market Street',
   city: 'Austin',
@@ -207,6 +209,7 @@ export interface Profile {
   firstName: string;
   lastName: string;
   email: string;
+  photoUrl: string;
   phone: string;
   address: string;
   city: string;
@@ -306,7 +309,13 @@ function jobFromUnknown(value: unknown): JobPosting | null {
     return null;
   }
   const data = value as Record<string, unknown>;
-  if (typeof data['id'] !== 'string' || typeof data['title'] !== 'string') {
+  if (
+    typeof data['id'] !== 'string' ||
+    !data['title'] ||
+    typeof data['title'] !== 'string' ||
+    !data['company'] ||
+    typeof data['company'] !== 'string'
+  ) {
     return null;
   }
   return {
@@ -368,6 +377,7 @@ function userStateKey(email: string) {
 @Service()
 export class JobFinderStore {
   private readonly browser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly authApi = inject(AuthApi);
   readonly profile = signal<Profile>(cloneProfile(DEFAULT_PROFILE));
 
   readonly searchCriteria = signal<SearchCriteria>({
@@ -462,10 +472,30 @@ export class JobFinderStore {
   readonly showReadyBanner = signal(true);
   readonly showSearchTip = signal(true);
   private readonly hydrated = signal(false);
+  private activeSession: string | null = null;
 
-  readonly displayName = computed(() => this.profile().firstName);
+  readonly displayName = computed(() => {
+    if (this.authApi.isGuest()) {
+      return 'Guest';
+    }
+    const profile = this.profile();
+    if (this.authApi.isAuthenticated() && profile.email === DEFAULT_PROFILE.email) {
+      return this.authApi.email()?.split('@')[0]?.split(/[._-]/)[0] || profile.firstName;
+    }
+    return profile.firstName;
+  });
   readonly roleSummary = computed(() => {
+    if (this.authApi.isGuest()) {
+      return `Guest mode · ${this.guestSaveLimit} saved-job limit`;
+    }
     const role = this.searchCriteria();
+    if (
+      this.authApi.isAuthenticated() &&
+      role.titles === DEFAULT_SEARCH_CRITERIA.titles &&
+      role.locations === DEFAULT_SEARCH_CRITERIA.locations
+    ) {
+      return 'Set your search preferences to start finding matches';
+    }
     return [role.titles, role.experience, role.locations].filter(Boolean).join(' · ');
   });
   readonly actionCount = computed(() => this.jobs().filter((job) => job.tab === 'action').length);
@@ -478,14 +508,45 @@ export class JobFinderStore {
         (job) => job.tab === 'action' && this.pendingApplyIds().includes(job.id),
       ) ?? null,
   );
+  /** Guests may save up to GUEST_SAVE_LIMIT jobs; logged-in users are unlimited. */
+  readonly guestSaveLimit = GUEST_SAVE_LIMIT;
+  readonly guestSaveLimitReached = computed(
+    () => this.authApi.isGuest() && this.applicationCount() >= GUEST_SAVE_LIMIT,
+  );
 
   constructor() {
-    afterNextRender(() => {
-      this.restore();
+    afterNextRender(async () => {
+      await this.authApi.readyPromise;
+      if (this.authApi.isAuthenticated()) {
+        const remote = this.authApi.initialState();
+        if (remote) {
+          this.applyState(remote);
+        } else {
+          this.profile.update((profile) => ({
+            ...profile,
+            email: this.authApi.email() ?? profile.email,
+          }));
+        }
+      } else {
+        this.restore();
+        if (this.authApi.isGuest()) {
+          this.clearDemoGuestState();
+        }
+      }
+      this.activeSession = this.authApi.isAuthenticated()
+        ? `account:${this.authApi.email() ?? ''}`
+        : this.authApi.isGuest()
+          ? 'guest'
+          : 'signed-out';
       this.hydrated.set(true);
     });
 
     effect(() => {
+      const session = this.authApi.isAuthenticated()
+        ? `account:${this.authApi.email() ?? ''}`
+        : this.authApi.isGuest()
+          ? 'guest'
+          : 'signed-out';
       this.profile();
       this.searchCriteria();
       this.searchMode();
@@ -495,6 +556,10 @@ export class JobFinderStore {
       this.jobs();
       this.inbox();
       if (this.hydrated()) {
+        if (this.activeSession !== null && this.activeSession !== session && session === 'guest') {
+          this.resetGuestState();
+        }
+        this.activeSession = session;
         this.persist();
       }
     });
@@ -603,8 +668,13 @@ export class JobFinderStore {
   }
 
   queueJob(job: FoundJob) {
-    if (this.isTracked(job)) {
-      return;
+    if (
+      this.isTracked(job) ||
+      this.guestSaveLimitReached() ||
+      !job.title.trim() ||
+      !job.company.trim()
+    ) {
+      return false;
     }
 
     this.jobs.update((jobs) => [
@@ -626,6 +696,7 @@ export class JobFinderStore {
       ...jobs,
     ]);
     this.persist();
+    return true;
   }
 
   private trackedKeys() {
@@ -659,7 +730,15 @@ export class JobFinderStore {
     if (!saved) {
       return;
     }
+    this.applySaved(saved);
+  }
 
+  /** Hydrates from the backend-provided state blob (authenticated users). */
+  private applyState(remote: Record<string, unknown>) {
+    this.applySaved(this.parseState(remote));
+  }
+
+  private applySaved(saved: PersistedState) {
     this.profile.set(saved.profile);
     this.searchCriteria.set(saved.searchCriteria);
     this.searchMode.set(saved.searchMode);
@@ -669,6 +748,69 @@ export class JobFinderStore {
     this.inbox.set(saved.inbox);
     const openIds = new Set(this.jobs().filter((job) => job.tab === 'action').map((job) => job.id));
     this.pendingApplyIds.set(saved.pendingApplyIds.filter((id) => openIds.has(id)));
+  }
+
+  private clearDemoGuestState() {
+    if (!this.authApi.isGuest()) {
+      return;
+    }
+
+    this.resetGuestState();
+  }
+
+  private resetGuestState() {
+    this.profile.set({
+      ...cloneProfile(DEFAULT_PROFILE),
+      firstName: 'Guest',
+      lastName: '',
+      email: 'guest@local',
+      phone: '',
+      address: '',
+      city: '',
+      state: '',
+      postal: '',
+      dateOfBirth: '',
+      livesInUs: '',
+      workAuthorized: '',
+      timezone: '',
+      openToRelocate: '',
+      workLocations: [],
+      skills: [],
+      education: [],
+      qualification: '',
+      experienceSummary: '',
+      yearsExperience: '',
+      lastEmployer: '',
+      lastTitle: '',
+      educationLevel: '',
+      linkedIn: '',
+      github: '',
+      targetLevel: '',
+      industries: [],
+      values: [],
+      roleInterests: [],
+      minSalary: '',
+      workSchedule: '',
+      employmentStatus: '',
+      hasClearance: '',
+      clearanceLevel: '',
+    });
+    this.searchCriteria.set({
+      ...DEFAULT_SEARCH_CRITERIA,
+      titles: '',
+      experience: '',
+      skills: '',
+      locations: 'Remote (US)',
+      salary: '',
+      workTypes: ['Remote'],
+      clearance: 'none',
+    });
+    this.searchMode.set('fast');
+    this.hiddenJobIds.set([]);
+    this.hiddenListingKeys.set([]);
+    this.jobs.set([]);
+    this.inbox.set([]);
+    this.pendingApplyIds.set([]);
   }
 
   private persist() {
@@ -686,6 +828,13 @@ export class JobFinderStore {
       inbox: this.inbox(),
       pendingApplyIds: this.pendingApplyIds(),
     };
+
+    if (this.authApi.isAuthenticated()) {
+      // Logged-in users: state lives server-side, tied to the account, not the browser origin.
+      this.authApi.saveState(state as unknown as Record<string, unknown>);
+      return;
+    }
+
     const encoded = JSON.stringify(state);
     const key = userStateKey(this.profile().email);
     localStorage.setItem(USER_KEY, userId(this.profile().email));
@@ -704,22 +853,7 @@ export class JobFinderStore {
       const scoped = currentUser ? localStorage.getItem(`${STORAGE_KEY}.${currentUser}`) : null;
       const raw = scoped ?? localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as Record<string, unknown>;
-        const hiddenJobIds = stringList(parsed['hiddenJobIds'], []);
-        const fallbackJobs = this.jobs().filter((job) => !hiddenJobIds.includes(job.id));
-        return {
-          profile: profileFromUnknown(parsed['profile']) ?? cloneProfile(DEFAULT_PROFILE),
-          searchCriteria: searchCriteriaFromUnknown(parsed['searchCriteria']) ?? {
-            ...DEFAULT_SEARCH_CRITERIA,
-            workTypes: [...DEFAULT_SEARCH_CRITERIA.workTypes],
-          },
-          searchMode: searchModeFromUnknown(parsed['searchMode']) ?? 'fast',
-          hiddenJobIds,
-          hiddenListingKeys: stringList(parsed['hiddenListingKeys'], []),
-          jobs: jobsFromUnknown(parsed['jobs'], fallbackJobs),
-          inbox: inboxFromUnknown(parsed['inbox'], this.inbox()),
-          pendingApplyIds: stringList(parsed['pendingApplyIds'], []),
-        };
+        return this.parseState(JSON.parse(raw) as Record<string, unknown>);
       }
 
       const legacy = localStorage.getItem(LEGACY_PROFILE_KEY);
@@ -746,5 +880,23 @@ export class JobFinderStore {
     } catch {
       return null;
     }
+  }
+
+  private parseState(parsed: Record<string, unknown>): PersistedState {
+    const hiddenJobIds = stringList(parsed['hiddenJobIds'], []);
+    const fallbackJobs = this.jobs().filter((job) => !hiddenJobIds.includes(job.id));
+    return {
+      profile: profileFromUnknown(parsed['profile']) ?? cloneProfile(DEFAULT_PROFILE),
+      searchCriteria: searchCriteriaFromUnknown(parsed['searchCriteria']) ?? {
+        ...DEFAULT_SEARCH_CRITERIA,
+        workTypes: [...DEFAULT_SEARCH_CRITERIA.workTypes],
+      },
+      searchMode: searchModeFromUnknown(parsed['searchMode']) ?? 'fast',
+      hiddenJobIds,
+      hiddenListingKeys: stringList(parsed['hiddenListingKeys'], []),
+      jobs: jobsFromUnknown(parsed['jobs'], fallbackJobs),
+      inbox: inboxFromUnknown(parsed['inbox'], this.inbox()),
+      pendingApplyIds: stringList(parsed['pendingApplyIds'], []),
+    };
   }
 }

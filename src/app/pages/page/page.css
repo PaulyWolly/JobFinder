@@ -1,11 +1,13 @@
 .page {
-  max-width: 72rem;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
 }
 
 h1 {
   margin-bottom: 1.5rem;
-  font-size: 2.25rem;
-  font-weight: 700;
+  font-size: 2.35rem;
+  font-weight: 750;
   letter-spacing: -0.04em;
   color: #111827;
 }

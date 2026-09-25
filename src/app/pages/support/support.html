@@ -2,7 +2,7 @@
   <header class="hero">
     <h1>Support</h1>
     <p class="lede">
-      Job Finder is a local search and tracking app. Use this page to unstick listings, applications,
+      <span>Job<em>Finder</em></span> is a local search and tracking app. Use this page to unstick listings, applications,
       and the API. Employer questions belong on the posting you opened with Apply.
     </p>
   </header>
@@ -48,9 +48,10 @@
     <article class="panel">
       <h2>Profile or applications disappeared</h2>
       <p>
-        Data is stored in this browser under your profile email. Another browser, a private window,
-        or clearing site data looks like a new user. Use the same profile email you saved on
-        <a routerLink="/profile">Profile</a>.
+        Registered-account data is stored in the local SQLite database and linked to your account,
+        so your profile, search settings, and applications are not tied to one browser origin.
+        Guest data is local-only; another browser, a private window, or clearing site data starts a
+        new Guest session. Use the same account credentials when you sign in.
       </p>
     </article>
 
@@ -58,10 +59,10 @@
       <h2>More help</h2>
       <p>
         Walk through the flow on
-        <a routerLink="/how-it-works">How Job Finder Works</a>
+        <a routerLink="/how-it-works">How <span>Job<em>Finder</em></span> Works</a>
         or skim
         <a routerLink="/faq">FAQ</a>.
-        Job Finder does not submit applications for you and does not replace the employer’s careers
+        <span>Job<em>Finder</em></span> does not submit applications for you and does not replace the employer’s careers
         page.
       </p>
     </article>

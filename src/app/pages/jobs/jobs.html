@@ -154,12 +154,30 @@
             >
               Remove
             </button>
-            <button type="button" class="primary" (click)="store.queueJob(job)">
+            <button type="button" class="primary" (click)="saveJob(job)">
               Save to Applications
             </button>
           </div>
         </li>
       }
     </ul>
+  }
+
+  @if (guestSaveLimitReached()) {
+    <div class="dialog-backdrop">
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="guest-save-title">
+        <h2 id="guest-save-title">Guest save limit reached</h2>
+        <p>
+          Guests can save up to {{ store.guestSaveLimit }} jobs. Create a free account to save
+          more jobs and apply with your profile details.
+        </p>
+        <div class="dialog-actions">
+          <button type="button" class="ghost" (click)="guestSaveLimitReached.set(false)">
+            Not now
+          </button>
+          <a class="primary" routerLink="/login">Create account</a>
+        </div>
+      </div>
+    </div>
   }
 </section>

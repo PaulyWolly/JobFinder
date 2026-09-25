@@ -29,6 +29,7 @@ export class Profile {
   protected readonly store = inject(JobFinderStore);
   readonly tab = signal<ProfileTab>('contact');
   readonly saved = signal(false);
+  readonly imageError = signal('');
   private savedTimer: ReturnType<typeof setTimeout> | undefined;
   readonly draft = signal<ProfileData>(cloneProfile(this.store.profile()));
   readonly profileForm = form(this.draft, (schema) => {
@@ -280,6 +281,42 @@ export class Profile {
   cancel() {
     this.draft.set(cloneProfile(this.store.profile()));
     this.saved.set(false);
+    this.imageError.set('');
+  }
+
+  selectProfileImage(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    this.imageError.set('');
+    if (!file) {
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      this.imageError.set('Choose an image file.');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      this.imageError.set('Choose an image smaller than 2 MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result === 'string') {
+        this.draft.update((profile) => ({ ...profile, photoUrl: result }));
+      } else {
+        this.imageError.set('The image could not be read.');
+      }
+    };
+    reader.onerror = () => this.imageError.set('The image could not be read.');
+    reader.readAsDataURL(file);
+  }
+
+  removeProfileImage() {
+    this.draft.update((profile) => ({ ...profile, photoUrl: '' }));
+    this.imageError.set('');
   }
 
   async save(event: Event) {

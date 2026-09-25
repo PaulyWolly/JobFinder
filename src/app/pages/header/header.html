@@ -1,8 +1,12 @@
 <aside class="sidebar">
   <div class="sidebar-top">
-    <a class="brand" routerLink="/" aria-label="Job Finder home">
-      <img class="brand-mark" src="job-search-blue.svg?v=2" width="32" height="32" alt="" />
-      <span>{{ title() }}</span>
+    <a class="brand" routerLink="/" aria-label="JobFinder home">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="10.5" cy="10.5" r="6.25"></circle>
+        <text x="10.5" y="11.55" text-anchor="middle">Jobs</text>
+        <path d="m15.25 15.25 5 5"></path>
+      </svg>
+      <span class="brand-lockup"><span>Job</span><span class="brand-finder">Finder</span></span>
     </a>
 
     <nav class="nav" aria-label="Primary">
@@ -63,7 +67,7 @@
     <nav class="nav nav-secondary" aria-label="Help">
       <a routerLink="/faq" routerLinkActive="active">FAQ</a>
       <a routerLink="/support" routerLinkActive="active">Support</a>
-      <a routerLink="/how-it-works" routerLinkActive="active">How Job Finder Works</a>
+      <a routerLink="/how-it-works" routerLinkActive="active">How <span class="brand-inline">Job<em>Finder</em></span> Works</a>
     </nav>
   </div>
 
@@ -79,9 +83,5 @@
       </section>
     }
 
-    <a class="profile" routerLink="/profile" routerLinkActive="active">
-      <span class="avatar">{{ store.displayName().charAt(0) }}</span>
-      My Profile
-    </a>
   </div>
 </aside>
