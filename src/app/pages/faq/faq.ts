@@ -42,7 +42,7 @@ export class Faq {
     {
       question: 'Where is my data stored?',
       answer:
-        'For registered accounts, your profile, search settings, applications, inbox, hidden listings, and any resume information you upload are stored in the local SQLite database on the <span class="brand-inline">Job<em>Finder</em></span> API, in a separate state record linked to your account. Guest sessions are local-only and use browser storage; Guests may save up to 10 jobs but must create an account before applying. <span class="brand-inline">Job<em>Finder</em></span> does not submit applications for you.',
+        'For registered accounts, your profile, search settings, applications, hidden listings, and any resume information you upload are stored in the local SQLite database on the <span class="brand-inline">Job<em>Finder</em></span> API, in a separate state record linked to your account. Guest sessions are local-only and use browser storage; Guests may save up to 10 jobs but must create an account before applying. <span class="brand-inline">Job<em>Finder</em></span> does not submit applications for you.',
     },
     {
       question: 'Jobs says it cannot reach the API.',

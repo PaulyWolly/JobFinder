@@ -59,17 +59,38 @@ function isScreened(job: FoundJob, criteria: SearchCriteria) {
   return true;
 }
 
+function sameSearchCriteria(left: SearchCriteria, right: SearchCriteria) {
+  return (
+    left.titles === right.titles &&
+    left.experience === right.experience &&
+    left.skills === right.skills &&
+    left.locations === right.locations &&
+    left.salary === right.salary &&
+    left.clearance === right.clearance &&
+    left.workTypes.length === right.workTypes.length &&
+    left.workTypes.every((type, index) => type === right.workTypes[index])
+  );
+}
+
 @Service()
 export class JobsApi {
   private readonly http = inject(HttpClient);
   private readonly store = inject(JobFinderStore);
 
-  readonly listings = resource({
-    defaultValue: { jobs: [], sources: [] } as JobSearchResult,
-    params: () => ({
+  private readonly searchParams = computed(
+    () => ({
       criteria: this.store.searchCriteria(),
       mode: this.store.searchMode(),
     }),
+    {
+      equal: (left, right) =>
+        left.mode === right.mode && sameSearchCriteria(left.criteria, right.criteria),
+    },
+  );
+
+  readonly listings = resource({
+    defaultValue: { jobs: [], sources: [] } as JobSearchResult,
+    params: () => this.searchParams(),
     loader: ({ params }) => this.search(params.criteria, params.mode),
   });
 

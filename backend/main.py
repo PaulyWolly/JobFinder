@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-import json
 import hashlib
+import json
 import os
 import secrets
 import smtplib
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from typing import Any
-
-import asyncio
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -41,20 +39,6 @@ app.add_middleware(
 @app.on_event("startup")
 async def on_startup() -> None:
     init_db()
-    # Start mail poller only when explicitly enabled via env var.
-    enabled = os.environ.get('MAIL_POLL_ENABLED', 'false').lower() in ('1', 'true', 'yes')
-    if enabled:
-        try:
-            import mail_poll
-
-            # Schedule background task; mail_poll.run_poll_loop is async
-            try:
-                asyncio.create_task(mail_poll.run_poll_loop())
-            except RuntimeError:
-                # If there's no running loop (unlikely under uvicorn), skip starting.
-                print('Mail poller not started: event loop unavailable', flush=True)
-        except Exception as exc:
-            print(f'Failed to initialize mail poller: {exc}', flush=True)
 
 
 class SearchRequest(BaseModel):
@@ -239,14 +223,3 @@ def put_state(
 @app.post("/jobs/search")
 async def jobs_search(body: SearchRequest) -> dict[str, Any]:
     return await search_jobs(body.model_dump())
-
-
-@app.post("/mail/fetch")
-def mail_fetch() -> dict[str, Any]:
-    try:
-        import mail_poll
-
-        count = mail_poll.fetch_and_import_once()
-        return {"imported": count}
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))

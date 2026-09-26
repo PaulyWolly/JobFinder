@@ -36,7 +36,7 @@
 .auth-brand-mark text {
   fill: currentColor;
   font-family: "Inter", sans-serif;
-  font-size: 2.5px;
+  font-size: 4px;
   font-weight: 750;
   letter-spacing: -0.08px;
   stroke: none;
@@ -62,7 +62,7 @@ h1 {
   color: #4b5563;
   line-height: 1.5;
   font-size: 14px;
-  width: 35vw;
+  width: 100%;
 }
 
 .apply-disclaimer {
