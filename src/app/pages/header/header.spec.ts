@@ -32,6 +32,9 @@ describe('Header', () => {
     expect(text).toContain('How JobFinder Works');
     expect(text).toContain('Profile');
 
+    const brandLink = fixture.nativeElement.querySelector('.brand') as HTMLAnchorElement | null;
+    expect(brandLink?.getAttribute('href')).toBe('/dashboard');
+
     const mark = fixture.nativeElement.querySelector('.brand-mark') as Element | null;
     // mark is now an inline SVG element; assert it's present and is an SVG
     expect(mark).not.toBeNull();

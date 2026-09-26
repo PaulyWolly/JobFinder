@@ -36,6 +36,8 @@ export class AuthApi {
   readonly email = signal<string | null>(null);
   /** Guests skip login entirely but are capped at GUEST_SAVE_LIMIT saved jobs. */
   readonly isGuest = signal(false);
+  /** Protected routes require a fresh sign-in or guest choice for each app launch. */
+  readonly sessionActivated = signal(false);
   /** True once the initial token check (and state fetch, if any) has settled. */
   readonly ready = signal(false);
   /** State fetched on login/signup/boot, consumed once by JobFinderStore. */
@@ -99,6 +101,7 @@ export class AuthApi {
   continueAsGuest() {
     this.clearSession();
     this.isGuest.set(true);
+    this.sessionActivated.set(true);
     this.initialState.set(null);
     if (this.browser) {
       localStorage.setItem(GUEST_KEY, '1');
@@ -150,6 +153,7 @@ export class AuthApi {
       this.token.set(res.token);
       this.email.set(res.email);
       this.isGuest.set(false);
+      this.sessionActivated.set(true);
       this.initialState.set(res.state);
       if (this.browser) {
         localStorage.setItem(TOKEN_KEY, res.token);
@@ -179,6 +183,7 @@ export class AuthApi {
   logout() {
     this.clearSession();
     this.isGuest.set(false);
+    this.sessionActivated.set(false);
     if (this.browser) {
       localStorage.removeItem(GUEST_KEY);
     }

@@ -1,4 +1,4 @@
-import { Component, HostListener, inject, signal } from '@angular/core';
+import { Component, computed, HostListener, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
@@ -18,6 +18,7 @@ export class App {
   protected readonly store = inject(JobFinderStore);
   protected readonly title = signal('JobFinder');
   protected readonly profileMenuOpen = signal(false);
+  protected readonly isLoginPage = computed(() => this.activeUrl().startsWith('/login'));
   protected readonly activeUrl = toSignal(
     this.router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),

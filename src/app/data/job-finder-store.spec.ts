@@ -1,4 +1,6 @@
+import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { AuthApi } from './auth-api';
 import { FoundJob, JobFinderStore } from './job-finder-store';
 
 describe('JobFinderStore', () => {
@@ -124,6 +126,18 @@ describe('JobFinderStore', () => {
 
     expect(store.applicationCount()).toBe(store.actionCount() + store.appliedCount());
     expect(store.applicationCount()).toBe(expectedTotal);
+  });
+
+  it('applies remote account state without retriggering hydration', async () => {
+    localStorage.clear();
+    TestBed.configureTestingModule({});
+    const store = TestBed.inject(JobFinderStore);
+    const authApi = TestBed.inject(AuthApi);
+
+    authApi.initialState.set({ jobs: [] });
+    await TestBed.inject(ApplicationRef).whenStable();
+
+    expect(store.jobs()).toEqual([]);
   });
 
   it('hides an applied listing after refresh even if the id changed', () => {

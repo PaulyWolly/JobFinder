@@ -1,9 +1,13 @@
-@if (authApi.isSignedIn()) {
+@if (authApi.isSignedIn() && !isLoginPage()) {
   <app-header [title]="title()" />
 }
 
-<main class="main" [class.auth-main]="!authApi.isSignedIn()" [attr.data-url]="activeUrl()">
-  @if (authApi.isSignedIn()) {
+<main
+  class="main"
+  [class.auth-main]="isLoginPage() || !authApi.isSignedIn()"
+  [attr.data-url]="activeUrl()"
+>
+  @if (authApi.isSignedIn() && !isLoginPage()) {
     <div class="topbar">
       <span class="topbar-greeting">Hi, {{ store.displayName() }}!</span>
       <div class="profile-menu">

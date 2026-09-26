@@ -1,5 +1,14 @@
 import { isPlatformBrowser } from '@angular/common';
-import { Service, afterNextRender, computed, effect, inject, PLATFORM_ID, signal } from '@angular/core';
+import {
+  Service,
+  afterNextRender,
+  computed,
+  effect,
+  inject,
+  PLATFORM_ID,
+  signal,
+  untracked,
+} from '@angular/core';
 import { AuthApi, GUEST_SAVE_LIMIT } from './auth-api';
 
 const STORAGE_KEY = 'job-finder.state';
@@ -92,7 +101,6 @@ interface PersistedState {
   hiddenJobIds: string[];
   hiddenListingKeys: string[];
   jobs: JobPosting[];
-  inbox: InboxItem[];
   pendingApplyIds: string[];
 }
 
@@ -296,14 +304,6 @@ export interface FoundJob {
   snippet: string;
 }
 
-export interface InboxItem {
-  id: string;
-  date: string;
-  time: string;
-  from: string;
-  category: string;
-}
-
 function jobFromUnknown(value: unknown): JobPosting | null {
   if (!value || typeof value !== 'object') {
     return null;
@@ -340,30 +340,6 @@ function jobsFromUnknown(value: unknown, fallback: JobPosting[]): JobPosting[] {
     return fallback.map((job) => ({ ...job }));
   }
   return value.map(jobFromUnknown).filter((job): job is JobPosting => job !== null);
-}
-
-function inboxItemFromUnknown(value: unknown): InboxItem | null {
-  if (!value || typeof value !== 'object') {
-    return null;
-  }
-  const data = value as Record<string, unknown>;
-  if (typeof data['id'] !== 'string' || typeof data['from'] !== 'string') {
-    return null;
-  }
-  return {
-    id: data['id'],
-    date: typeof data['date'] === 'string' ? data['date'] : '',
-    time: typeof data['time'] === 'string' ? data['time'] : '',
-    from: data['from'],
-    category: typeof data['category'] === 'string' ? data['category'] : '',
-  };
-}
-
-function inboxFromUnknown(value: unknown, fallback: InboxItem[]): InboxItem[] {
-  if (!Array.isArray(value)) {
-    return fallback.map((item) => ({ ...item }));
-  }
-  return value.map(inboxItemFromUnknown).filter((item): item is InboxItem => item !== null);
 }
 
 function userId(email: string) {
@@ -427,44 +403,6 @@ export class JobFinderStore {
     },
   ]);
 
-  readonly inbox = signal<InboxItem[]>([
-    {
-      id: 'm1',
-      date: '09-17-2026',
-      time: '8:22 AM',
-      from: 'no-reply@jobs.example.com',
-      category: 'Rejection notification',
-    },
-    {
-      id: 'm2',
-      date: '09-16-2026',
-      time: '11:44 PM',
-      from: 'hiring@cedarhealth.example',
-      category: 'Application acknowledgement',
-    },
-    {
-      id: 'm3',
-      date: '09-16-2026',
-      time: '11:36 PM',
-      from: 'notify@dayforce.example',
-      category: 'Application acknowledgement',
-    },
-    {
-      id: 'm4',
-      date: '09-16-2026',
-      time: '11:29 PM',
-      from: 'recruiter@northwind.example',
-      category: 'Additional info request',
-    },
-    {
-      id: 'm5',
-      date: '09-15-2026',
-      time: '2:10 PM',
-      from: 'talent@harbor.example',
-      category: 'Interview invitation',
-    },
-  ]);
-
   readonly searchMode = signal<SearchMode>('fast');
   readonly hiddenJobIds = signal<string[]>([]);
   readonly hiddenListingKeys = signal<string[]>([]);
@@ -504,7 +442,6 @@ export class JobFinderStore {
   readonly actionCount = computed(() => this.jobs().filter((job) => job.tab === 'action').length);
   readonly appliedCount = computed(() => this.jobs().filter((job) => job.tab === 'applied').length);
   readonly applicationCount = computed(() => this.actionCount() + this.appliedCount());
-  readonly inboxCount = computed(() => this.inbox().length);
   readonly pendingApplyJob = computed(
     () =>
       this.jobs().find(
@@ -548,7 +485,7 @@ export class JobFinderStore {
     effect(() => {
       const remote = this.authApi.initialState();
       if (remote) {
-        this.applyState(remote);
+        untracked(() => this.applyState(remote));
       }
     });
 
@@ -565,7 +502,6 @@ export class JobFinderStore {
       this.hiddenListingKeys();
       this.pendingApplyIds();
       this.jobs();
-      this.inbox();
       if (this.hydrated()) {
         if (this.activeSession !== null && this.activeSession !== session) {
           if (session === 'guest') {
@@ -770,7 +706,6 @@ export class JobFinderStore {
     this.hiddenJobIds.set(saved.hiddenJobIds);
     this.hiddenListingKeys.set(saved.hiddenListingKeys);
     this.jobs.set(saved.jobs.filter((job) => !saved.hiddenJobIds.includes(job.id)));
-    this.inbox.set(saved.inbox);
     const openIds = new Set(this.jobs().filter((job) => job.tab === 'action').map((job) => job.id));
     this.pendingApplyIds.set(saved.pendingApplyIds.filter((id) => openIds.has(id)));
   }
@@ -834,7 +769,6 @@ export class JobFinderStore {
     this.hiddenJobIds.set([]);
     this.hiddenListingKeys.set([]);
     this.jobs.set([]);
-    this.inbox.set([]);
     this.pendingApplyIds.set([]);
   }
 
@@ -850,7 +784,6 @@ export class JobFinderStore {
       hiddenJobIds: this.hiddenJobIds(),
       hiddenListingKeys: this.hiddenListingKeys(),
       jobs: this.jobs(),
-      inbox: this.inbox(),
       pendingApplyIds: this.pendingApplyIds(),
     };
 
@@ -898,7 +831,6 @@ export class JobFinderStore {
             hiddenJobIds: [],
             hiddenListingKeys: [],
             jobs: this.jobs().map((job) => ({ ...job })),
-            inbox: this.inbox().map((item) => ({ ...item })),
             pendingApplyIds: [],
           }
         : null;
@@ -920,7 +852,6 @@ export class JobFinderStore {
       hiddenJobIds,
       hiddenListingKeys: stringList(parsed['hiddenListingKeys'], []),
       jobs: jobsFromUnknown(parsed['jobs'], fallbackJobs),
-      inbox: inboxFromUnknown(parsed['inbox'], this.inbox()),
       pendingApplyIds: stringList(parsed['pendingApplyIds'], []),
     };
   }

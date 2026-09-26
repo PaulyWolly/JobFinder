@@ -18,6 +18,10 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
+  it('should redirect the root route to login', () => {
+    expect(routes.find((route) => route.path === '')?.redirectTo).toBe('login');
+  });
+
   it('should hide the sidebar until a user is signed in', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
